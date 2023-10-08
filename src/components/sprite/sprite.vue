@@ -132,69 +132,69 @@ function onDotMousedown(dotInfo: IDot, e: MouseEvent) {
   e.stopPropagation();
   e.preventDefault();
 
-  const [startX, startY] = [e.pageX, e.pageY]
+  // 1.按下去的一瞬间 缓存当前的盒子信息
   const { width, height, x: left, y: top } = dragData.value;
-
-  const editorRectInfo = svgRef.value.getBoundingClientRect();
-
-  // 当前点击坐标
-  const curPoint = {
-    x: e.clientX - editorRectInfo.left,
-    y: e.clientY - editorRectInfo.top,
-  };
-
-  const point = {
-    x:dragData.value.x,
-     y:dragData.value.y
-  }
-
-  // 中心点
-  let center = {
+  // 2.计算原始中心点
+  const originCenter = {
     x: left + width / 2,
     y: top + height / 2,
   };
 
-  // 计算旋转之前的坐标
-  const rect = getRotatedPoint(point, center, -dragData.value.rotate)
+  // 3. 计算画布的信息
+  const editorRectInfo = svgRef.value.getBoundingClientRect();
 
-  // 对称点
-  const symmetricPoint = {
-    x: center.x - (curPoint.x - center.x),
-    y: center.y - (curPoint.y - center.y),
+  // 4.精确计算句柄的坐标
+  const handleRectInfo = e.target.getBoundingClientRect();
+
+  const handlePoint = {
+    x: handleRectInfo.left - editorRectInfo.left + dotSize / 2,
+    y: handleRectInfo.top - editorRectInfo.top + dotSize / 2,
   };
 
-  const onMousemove = (e: MouseEvent) => {
-    // // 移动的x距离
-    const disX = e.pageX - startX;
-    // // 移动的y距离
-    const disY = e.pageY - startY;
-    const curPositon = {
-      x: e.clientX - editorRectInfo.left,
-      y: e.clientY - editorRectInfo.top,
-    };
+  console.log(handlePoint, "handlePoint");
 
-    console.log(rect, 'rect');
-    
-    switch (dotInfo.side) {
-      case HANDLER.BR:
-        // dragData.value.x = rect.x - disX
-        // dragData.value.y = rect.x - disY
-        dragData.value.height = height + disY
-        dragData.value.width = width +disX
-        break;
-    
-      default:
-        break;
-    }
+  // 获取对称点的坐标
+  const symmetricPoint = {
+    x: originCenter.x - (+handlePoint.x - originCenter.x),
+    y: originCenter.y - (+handlePoint.y - originCenter.y),
+  };
+  console.log(symmetricPoint, "symmetricPoint");
 
-    // // 获取形变后的新的盒子信息
-    const resizedBoxInfo = calcResizedBoxInfo(dotInfo.side, {
-      recordInfo: { ...dragData.value },
-      curPositon,
+  // 5.计算中心点的坐标
+
+  const onMousemove = (moveEv: MouseEvent) => {
+    const box = calcResizedBoxInfo({
+      handleType: dotInfo.side,
+      originCenter,
+      editorRectInfo,
+      handlePoint,
+      svgEl: svgRef.value,
+      startMouse: e,
+      moveMouse: moveEv,
+      originBoxInfo: dragData.value,
       symmetricPoint,
     });
 
+    dragData.value = box;
 
+    // switch (dotInfo.side) {
+    //   case HANDLER.BR:
+    //     // dragData.value.x = rect.x - disX
+    //     // dragData.value.y = rect.x - disY
+    //     dragData.value.height = height + disY
+    //     dragData.value.width = width +disX
+    //     break;
+
+    //   default:
+    //     break;
+    // }
+
+    // // // 获取形变后的新的盒子信息
+    // const resizedBoxInfo = calcResizedBoxInfo(dotInfo.side, {
+    //   recordInfo: { ...dragData.value },
+    //   curPositon,
+    //   symmetricPoint,
+    // });
 
     // dragData.value = resizedBoxInfo;
 

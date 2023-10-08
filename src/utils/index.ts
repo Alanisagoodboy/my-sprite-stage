@@ -254,7 +254,7 @@ function getLength(x: number, y: number): number {
  * @returns 距离
  */
 function distance(p1: IPoint, p2: IPoint) {
-  Math.sqrt((p1.x - p2.x) ** 2 + (p1.y - p2.y) ** 2);
+ return Math.sqrt((p1.x - p2.x) ** 2 + (p1.y - p2.y) ** 2);
 }
 
 /**
@@ -347,40 +347,223 @@ function degToRadian(deg: number) {
 /**
  * 计算形变后的盒子信息
  */
-function calcResizedBoxInfo(
-  handleType: HANDLER,
+function calcResizedBoxInfo(options: 
   {
-    curPositon,
-    symmetricPoint,
-    recordInfo,
-  }: { recordInfo: IBox; curPositon: IPoint; symmetricPoint: IPoint }
+    handleType: HANDLER,
+    originCenter: IPoint,
+    handlePoint: IPoint,
+    svgEl: HTMLElement,
+    startMouse: MouseEvent,
+    moveMouse: MouseEvent,
+    originBoxInfo: IBox,
+    editorRectInfo: any,
+    symmetricPoint: IPoint,
+  }
 ) {
-  const rectInfo = {
-    x: 0,
-    y: 0,
-    width: 0,
-    height: 0,
-    rotate: 0,
-  };
+  const { handleType, moveMouse, editorRectInfo, originCenter,originBoxInfo, handlePoint,symmetricPoint, } = options
+  // 当前鼠标的位置信息
+  const curPositon = {
+    x: moveMouse.clientX - editorRectInfo.x,
+    y: moveMouse.clientY - editorRectInfo.y
+  }
 
-  // 1. 根据当前句柄坐标以及对称点 计算出新的中心点
-  const newCenterPoint = getCenterPoint(curPositon, symmetricPoint);
+  const resizeBoxInfo = { ...originBoxInfo }
 
-  // 2. 根据旋转公式计算出 句柄坐标
-  const newTopLeftPoint = getRotatedPoint(
-    curPositon,
-    newCenterPoint,
-    -style.rotate
-  );
+  if (handleType === HANDLER.BL) {
+    let newCenterPoint = getCenterPoint(curPositon, symmetricPoint)
+    let newTopRightPoint = getRotatedPoint(symmetricPoint, newCenterPoint, -originBoxInfo.rotate)
+    let newBottomLeftPoint = getRotatedPoint(curPositon, newCenterPoint, -originBoxInfo.rotate)
 
-  // 3. 根据旋转公式计算出 句柄对称点 的坐标
-  const newBottomRightPoint = getRotatedPoint(
-    symmetricPoint,
-    newCenterPoint,
-    -style.rotate
-  );
+    resizeBoxInfo.height = newBottomLeftPoint.y - newTopRightPoint.y
+    resizeBoxInfo.width = newTopRightPoint.x - newBottomLeftPoint.x
+    resizeBoxInfo.x = newBottomLeftPoint.x;
+    resizeBoxInfo.y = newTopRightPoint.y
+  }
 
-  return rectInfo;
+  if (handleType === HANDLER.BR) {
+    let newCenterPoint = getCenterPoint(curPositon, symmetricPoint)
+    let newTopleftPoint = getRotatedPoint(symmetricPoint, newCenterPoint, -originBoxInfo.rotate)
+    let newBottomRightPoint = getRotatedPoint(curPositon, newCenterPoint, -originBoxInfo.rotate)
+
+    resizeBoxInfo.height = newBottomRightPoint.y - newTopleftPoint.y
+    resizeBoxInfo.width =newBottomRightPoint.x - newTopleftPoint.x 
+    resizeBoxInfo.x = newTopleftPoint.x;
+    resizeBoxInfo.y = newTopleftPoint.y
+  }
+
+  if (handleType === HANDLER.TL) {
+    let newCenterPoint = getCenterPoint(curPositon, symmetricPoint)
+    let newBottomLeftPoint = getRotatedPoint(symmetricPoint, newCenterPoint, -originBoxInfo.rotate)
+    let newTopleftPoint = getRotatedPoint(curPositon, newCenterPoint, -originBoxInfo.rotate)
+
+    resizeBoxInfo.height = newBottomLeftPoint.y - newTopleftPoint.y
+    resizeBoxInfo.width =newBottomLeftPoint.x - newTopleftPoint.x 
+    resizeBoxInfo.x = newTopleftPoint.x;
+    resizeBoxInfo.y = newTopleftPoint.y
+  }
+
+  if (handleType === HANDLER.TR) {
+    let newCenterPoint = getCenterPoint(curPositon, symmetricPoint)
+    let newBottomLeftPoint  = getRotatedPoint(symmetricPoint, newCenterPoint, -originBoxInfo.rotate)
+    let newTopRightPoint= getRotatedPoint(curPositon, newCenterPoint, -originBoxInfo.rotate)
+
+    resizeBoxInfo.height = newBottomLeftPoint.y - newTopRightPoint.y
+    resizeBoxInfo.width =newTopRightPoint.x - newBottomLeftPoint.x 
+    resizeBoxInfo.x = newBottomLeftPoint.x;
+    resizeBoxInfo.y = newTopRightPoint.y
+  }
+
+  if (handleType === HANDLER.TM) {
+ // 由于用户拉伸时是以任意角度拉伸的，所以在求得旋转前的坐标时，只取 y 坐标（这里的 x 坐标可能是任意值），x 坐标用 curPoint 的。
+    // 这个中心点（第二个参数）用 curPoint, center, symmetricPoint 都可以，只要他们在一条直线上就行
+    const rotatedcurPositon = getRotatedPoint(curPositon, handlePoint, -originBoxInfo.rotate)
+
+    // 算出旋转前 y 坐标，再用 curPoint 的 x 坐标，重新计算它们旋转后对应的坐标
+    const rotatedTopMiddlePoint = getRotatedPoint({
+        x: handlePoint.x,
+        y: rotatedcurPositon.y,
+    }, handlePoint, originBoxInfo.rotate)
+    
+    // 用旋转后的坐标和对称点算出新的高度（勾股定理）
+    const newHeight = Math.sqrt((rotatedTopMiddlePoint.x - symmetricPoint.x) ** 2 + (rotatedTopMiddlePoint.y - symmetricPoint.y) ** 2)
+    
+    const newCenter = {
+        x: rotatedTopMiddlePoint.x - (rotatedTopMiddlePoint.x - symmetricPoint.x) / 2,
+        y: rotatedTopMiddlePoint.y + (symmetricPoint.y - rotatedTopMiddlePoint.y) / 2,
+    }
+
+    resizeBoxInfo.height = newHeight
+    resizeBoxInfo.x = newCenter.x - (originBoxInfo.width  / 2)
+    resizeBoxInfo.y = newCenter.y - (newHeight/ 2)
+
+  }
+
+  if (handleType === HANDLER.MR) {
+    const rotatedcurPositon = getRotatedPoint(curPositon, handlePoint, -originBoxInfo.rotate)
+    const rotatedRightMiddlePoint = getRotatedPoint({
+        x: rotatedcurPositon.x,
+        y: handlePoint.y,
+    }, handlePoint, originBoxInfo.rotate)
+  
+    const newWidth = Math.sqrt((rotatedRightMiddlePoint.x - symmetricPoint.x) ** 2 + (rotatedRightMiddlePoint.y - symmetricPoint.y) ** 2)
+
+    const newCenter = {
+        x: rotatedRightMiddlePoint.x - (rotatedRightMiddlePoint.x - symmetricPoint.x) / 2,
+        y: rotatedRightMiddlePoint.y + (symmetricPoint.y - rotatedRightMiddlePoint.y) / 2,
+    }
+        
+    resizeBoxInfo.width = newWidth
+    resizeBoxInfo.y = newCenter.y - (resizeBoxInfo.height / 2)
+    resizeBoxInfo.x = newCenter.x - (newWidth / 2)
+
+
+  }
+
+  if (handleType === HANDLER.BM) {
+    const rotatedcurPositon = getRotatedPoint(curPositon, handlePoint, -resizeBoxInfo.rotate)
+    const rotatedBottomMiddlePoint = getRotatedPoint({
+        x: handlePoint.x,
+        y: rotatedcurPositon.y,
+    }, handlePoint, resizeBoxInfo.rotate)
+  
+    const newHeight = Math.sqrt((rotatedBottomMiddlePoint.x - symmetricPoint.x) ** 2 + (rotatedBottomMiddlePoint.y - symmetricPoint.y) ** 2)
+
+    const newCenter = {
+        x: rotatedBottomMiddlePoint.x - (rotatedBottomMiddlePoint.x - symmetricPoint.x) / 2,
+        y: rotatedBottomMiddlePoint.y + (symmetricPoint.y - rotatedBottomMiddlePoint.y) / 2,
+    }
+
+    resizeBoxInfo.height = newHeight
+    resizeBoxInfo.y = newCenter.y - (newHeight / 2)
+    resizeBoxInfo.x = newCenter.x - (resizeBoxInfo.width / 2)
+  }
+
+  if (handleType === HANDLER.ML) {
+    const rotatedcurPositon = getRotatedPoint(curPositon, handlePoint, -resizeBoxInfo.rotate)
+    const rotatedPoint = getRotatedPoint({
+        x: rotatedcurPositon.x,
+        y: handlePoint.y,
+    }, handlePoint, resizeBoxInfo.rotate)
+  
+    const newWidth = Math.sqrt((rotatedPoint.x - symmetricPoint.x) ** 2 + (rotatedPoint.y - symmetricPoint.y) ** 2)
+
+    const newCenter = {
+        x: rotatedPoint.x - (rotatedPoint.x - symmetricPoint.x) / 2,
+        y: rotatedPoint.y + (symmetricPoint.y - rotatedPoint.y) / 2,
+    }
+
+    resizeBoxInfo.width = newWidth
+    resizeBoxInfo.y = newCenter.y - (resizeBoxInfo.height / 2)
+    resizeBoxInfo.x = newCenter.x - (newWidth / 2)
+  }
+
+  return resizeBoxInfo
+
+
+  // const nexBoxInfo = {
+  // }
+
+  // if (newWidth > 0 && newHeight > 0) {
+  //   style.width = Math.round(newWidth)
+  //   style.height = Math.round(newHeight)
+  //   style.left = Math.round(newBottomLeftPoint.x)
+  //   style.top = Math.round(newTopRightPoint.y)
+  // }
+
+  if (newWidth > 0 && newHeight > 0) {
+    return {
+      x: newBottomLeftPoint.x,
+      y: newTopRightPoint.y,
+      width: newWidth,
+      height: newHeight,
+      rotate: originBoxInfo.rotate
+  }
+  } else {
+    return {...originBoxInfo}
+   }
+  // const rectInfo = {
+  //   x: 0,
+  //   y: 0,
+  //   width: 0,
+  //   height: 0,
+  //   rotate: 0,
+  // };
+
+  // // 1. 根据当前句柄坐标以及对称点 计算出新的中心点
+  // const newCenterPoint = getCenterPoint(curPositon, symmetricPoint);
+
+  // // 2. 根据旋转公式计算出 句柄坐标
+  // const newTopLeftPoint = getRotatedPoint(
+  //   curPositon,
+  //   newCenterPoint,
+  //   -style.rotate
+  // );
+
+  // // 3. 根据旋转公式计算出 句柄对称点 的坐标
+  // const newBottomRightPoint = getRotatedPoint(
+  //   symmetricPoint,
+  //   newCenterPoint,
+  //   -style.rotate
+
+}
+
+function createLatLngOfRotate (param: {
+  latLng: IPoint,
+  center: IPoint,
+  rotateNum: number
+}
+): IPoint{
+// 1.求点到中心点的直线距离
+const r = Math.sqrt(Math.pow(param.latLng.x - param.center.x, 2) +  Math.pow(param.latLng.y - param.center.y, 2))
+// 2.求点到x之间的角度
+let rotateValue = Math.atan2(param.latLng.y-param.center.y, param.latLng.x-param.center.x)/(2*Math.acos(-1))*360;
+// 3.减去旋转的角度 再整体转为弧度
+rotateValue = (rotateValue - param.rotateNum)*Math.PI/180;
+// 4.根据中心的坐标、弧度、半径计算出新的坐标
+return {
+  x:param.center.x+r*Math.cos(rotateValue),
+  y:param.center.y+r*Math.sin(rotateValue)
+}
 }
 
 /**
