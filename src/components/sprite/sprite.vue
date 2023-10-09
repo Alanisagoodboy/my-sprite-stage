@@ -147,8 +147,8 @@ function onDotMousedown(dotInfo: IDot, e: MouseEvent) {
   const handleRectInfo = e.target.getBoundingClientRect();
 
   const handlePoint = {
-    x: handleRectInfo.left - editorRectInfo.left + dotSize / 2,
-    y: handleRectInfo.top - editorRectInfo.top + dotSize / 2,
+    x: handleRectInfo.left - editorRectInfo.left + handleRectInfo.width / 2,
+    y: handleRectInfo.top - editorRectInfo.top + handleRectInfo.height / 2,
   };
 
   console.log(handlePoint, "handlePoint");
