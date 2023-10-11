@@ -1,17 +1,7 @@
 <template>
-  <g
-    ref="dragRef"
-    class="sprite-container"
-    :transform="transform"
-    @mousedown="onMousedown"
-  >
-    <rect
-      fill="transparent"
-      :width="dragData.width"
-      :height="dragData.height"
-    />
+  <g ref="dragRef" class="active-sprites-container" :transform="transform">
     <slot>
-      <text>{{ dragData.x }}---{{ dragData.y }}</text>
+      <!-- <text>{{ dragData.x }}---{{ dragData.y }}</text> -->
     </slot>
 
     <rect
@@ -41,39 +31,32 @@
 
 <script setup lang="ts">
 import {
-  getRotatedPoint,
   getHandlePoint,
-  calculateTopLeft,
-  calculateLeftMiddle,
   calcResizedBoxInfo,
+  findParentByClass,
+  getAuxiliaryLine,
 } from "../../utils/index";
 import { HANDLER } from "../../utils/types";
 
-import { computed, ref, inject, onMounted, type Ref } from "vue";
+import {
+  computed,
+  ref,
+  inject,
+  onMounted,
+  onUnmounted,
+  type Ref,
+  nextTick,
+} from "vue";
+import { ISprite } from "../meta-data/types";
 
 const svgRef = inject("svgRef") as Ref<HTMLElement>;
 onMounted(() => {
-  console.log(svgRef, "kkkk");
+  document.addEventListener("pointerdown", onMousedown, false);
 });
-const initCoordinate = {
-  x: 0,
-  y: 0,
-};
 
-const initSize = {
-  width: 0,
-  height: 0,
-};
-
-function setInitCoordinate(x: number, y: number) {
-  initCoordinate.x = x;
-  initCoordinate.y = y;
-}
-
-function setInitSize(width: number, height: number) {
-  initSize.width = width;
-  initSize.height = height;
-}
+onUnmounted(() => {
+  document.removeEventListener("pointerdown", onMousedown, false);
+});
 
 const dotSize = 10;
 
@@ -98,12 +81,32 @@ const props = defineProps({
     type: Number,
     default: 0,
   },
+  rotate: {
+    type: Number,
+    default: 0,
+  },
   color: {
     type: String,
     default: "#3a7afe",
   },
+  activeIndex: {
+    type: [Number],
+    default: "0",
+  },
+  updateActiveIndex: {
+    type: Function,
+    default: () => {},
+  },
+  updateActiveInfo: {
+    type: Function,
+    default: () => {},
+  },
+  spriteList: {
+    type: Array,
+    default: [],
+  },
 });
-const emit = defineEmits(["move", "resize", "rotate"]);
+const emit = defineEmits(["move", "resize", "rotate", "select"]);
 
 type IDot = {
   side: HANDLER;
@@ -158,7 +161,6 @@ function onDotMousedown(dotInfo: IDot, e: MouseEvent) {
     x: originCenter.x - (+handlePoint.x - originCenter.x),
     y: originCenter.y - (+handlePoint.y - originCenter.y),
   };
-  console.log(symmetricPoint, "symmetricPoint");
 
   // 5.计算中心点的坐标
 
@@ -177,87 +179,98 @@ function onDotMousedown(dotInfo: IDot, e: MouseEvent) {
 
     dragData.value = box;
 
-    // switch (dotInfo.side) {
-    //   case HANDLER.BR:
-    //     // dragData.value.x = rect.x - disX
-    //     // dragData.value.y = rect.x - disY
-    //     dragData.value.height = height + disY
-    //     dragData.value.width = width +disX
-    //     break;
+    emit("resize", { ...dragData.value }, dotInfo.side);
 
-    //   default:
-    //     break;
-    // }
-
-    // // // 获取形变后的新的盒子信息
-    // const resizedBoxInfo = calcResizedBoxInfo(dotInfo.side, {
-    //   recordInfo: { ...dragData.value },
-    //   curPositon,
-    //   symmetricPoint,
-    // });
-
-    // dragData.value = resizedBoxInfo;
-
-    emit("resize", dragData.value);
+    // 吸附改动实时更新一次
+    const _lastDragInfo = getActiveBoxInfo();
+    dragData.value = { ..._lastDragInfo };
   };
   const onMouseup = (_e: MouseEvent) => {
-    document.removeEventListener("mousemove", onMousemove);
-    document.removeEventListener("mouseup", onMouseup);
+    document.removeEventListener("pointermove", onMousemove);
+    document.removeEventListener("pointerup", onMouseup);
   };
-  document.addEventListener("mousemove", onMousemove);
-  document.addEventListener("mouseup", onMouseup);
+  document.addEventListener("pointermove", onMousemove);
+  document.addEventListener("pointerup", onMouseup);
 }
 
 // 拖拽元素
 const dragRef = ref<HTMLElement | null>(null);
 // 是否按下鼠标
 const isMousedown = ref(false);
+
 // 拖拽数据
 const dragData = ref({
-  width: props.width,
-  height: props.height,
-  x: props.x,
-  y: props.y,
-  rotate: 0,
+  width: props.spriteList[props.activeIndex]?.attrs?.size?.width || 0,
+  height: props.spriteList[props.activeIndex]?.attrs?.size?.height || 0,
+  x: props.spriteList[props.activeIndex]?.attrs?.coordinate?.x || 0,
+  y: props.spriteList[props.activeIndex]?.attrs?.coordinate?.y || 0,
+  rotate: props.spriteList[props.activeIndex]?.attrs?.angle || 0,
 });
+
+function getActiveBoxInfo() {
+  const active: ISprite = props.spriteList[props.activeIndex];
+  const { coordinate, size, angle } = JSON.parse(JSON.stringify(active.attrs));
+  return {
+    x: coordinate.x,
+    y: coordinate.y,
+    width: size.width,
+    height: size.height,
+    rotate: angle,
+  };
+}
 
 /**
  * 鼠标按下事件
  */
-function onMousedown(e: MouseEvent) {
-  // const el = dragRef.value!;
+async function onMousedown(e: MouseEvent) {
+  //
+  const spriteDom = findParentByClass(e.target, "sprite-container");
+  if (!spriteDom) return;
+
+  // 查找 id 点击的精灵的id
+  const id = spriteDom?.getAttribute("data-sprite-id");
+  emit("select", id);
+  // 传出事件，再等待新的props
+  await nextTick();
+  console.log(id, "id");
+  console.log(props.activeIndex, "props.activeIndex");
+
+  const lastDragInfo = getActiveBoxInfo();
+  dragData.value = { ...lastDragInfo };
+
+  console.log(dragData.value, "dragData.value");
+
   isMousedown.value = true;
 
   // 记录按下的位置
   const downX = e.clientX;
   const downY = e.clientY;
 
-  // 鼠标在盒子里的位置
-  // const mouseX = downX - rect.x
-  // const mouseY = downY - rect.y
-  // return;
-  const lastPoint = {
-    x: dragData.value.x,
-    y: dragData.value.y,
-  };
   const onMousemove = (e: MouseEvent) => {
-    const x = e.clientX - downX + lastPoint.x;
-    const y = e.clientY - downY + lastPoint.y;
+    console.log("move");
+
+    const x = e.clientX - downX + +lastDragInfo.x;
+    const y = e.clientY - downY + +lastDragInfo.y;
     dragData.value.x = x;
     dragData.value.y = y;
-    emit("move", dragData.value);
+
+    emit("move", { ...dragData.value });
+
+    // 吸附改动实时更新一次
+    const _lastDragInfo = getActiveBoxInfo();
+    dragData.value = { ..._lastDragInfo };
   };
 
   const onMouseup = (_e: MouseEvent) => {
     isMousedown.value = false;
     // 移除document事件
-    document.removeEventListener("mousemove", onMousemove);
-    document.removeEventListener("mouseup", onMouseup);
+    document.removeEventListener("pointermove", onMousemove, false);
+    document.removeEventListener("pointerup", onMouseup, false);
   };
   // 位document注册鼠标移动事件
-  document.addEventListener("mousemove", onMousemove);
+  document.addEventListener("pointermove", onMousemove, false);
   // 鼠标抬起事件
-  document.addEventListener("mouseup", onMouseup);
+  document.addEventListener("pointerup", onMouseup, false);
 }
 
 function onRotateMousedown(e: MouseEvent) {
@@ -267,8 +280,6 @@ function onRotateMousedown(e: MouseEvent) {
 
   const startY = e.clientY;
   const startX = e.clientX;
-
-  console.log(el, "yy");
 
   const rect = el.getBoundingClientRect();
   // 旋转中心位置
@@ -291,15 +302,15 @@ function onRotateMousedown(e: MouseEvent) {
     const rotate = 0 + rotateDegreeAfter - rotateDegreeBefore;
 
     dragData.value.rotate = rotate; // 角度
-    emit("rotate", dragData.value);
+    emit("rotate", { ...dragData.value });
   }
 
   const onMouseup = (_e: MouseEvent) => {
-    document.removeEventListener("mousemove", onMousemove);
-    document.removeEventListener("mouseup", onMouseup);
+    document.removeEventListener("pointermove", onMousemove);
+    document.removeEventListener("pointerup", onMouseup);
   };
-  document.addEventListener("mousemove", onMousemove);
-  document.addEventListener("mouseup", onMouseup);
+  document.addEventListener("pointermove", onMousemove);
+  document.addEventListener("pointerup", onMouseup);
 }
 </script>
 
