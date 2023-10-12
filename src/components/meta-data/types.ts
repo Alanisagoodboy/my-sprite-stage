@@ -1,7 +1,8 @@
 import { CSSProperties, Component } from 'vue'
 export enum SPRITE_NAME {
-    RECT = 'RectSprite',
-    LINE = 'LineSprite'
+    RECT = 'RectSprite', // 矩形
+    LINE = 'LineSprite', // 线段
+    ROUND_RECT = "RoundRectSprite" // 圆角矩形
 }
 
 // 尺寸

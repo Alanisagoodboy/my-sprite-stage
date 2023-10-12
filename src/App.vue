@@ -18,15 +18,14 @@
 
         <!-- 精灵容器 -->
         <SpriteContainer
-          v-for="(sprite, index) of spriteList"
+          v-for="sprite of spriteList"
           :sprite="sprite"
           :key="sprite.id"
         >
-          <!-- 精灵 -->
-          <!-- <RectSprite :sprite="sprite">
-            <text fill="#000">{{ index }} </text>
-          </RectSprite> -->
           <component :is="cpnsMap[sprite.type]" :sprite="sprite"></component>
+
+          <!-- 在精灵容器中加入锚点渲染器 -->
+          <AnchorPoints :sprite="sprite" />
         </SpriteContainer>
 
         <line
@@ -55,7 +54,7 @@
 import Stage from "./components/stage/index.vue";
 import SpriteContainer from "./components/sprite/sprite-container.vue";
 import ActiveSpritesContainer from "./components/sprite/active-sprites-container.vue";
-import RectSprite from "./components/sprite/rect-sprite/index.vue";
+import AnchorPoints from "./components/sprite/anchor-point/anchor-points.vue";
 import GridLine from "./components/stage/grid-line.vue";
 import { ref, computed } from "vue";
 
@@ -78,7 +77,7 @@ const spriteList = ref<ISprite[]>([]);
 // 活跃（被选中）状态的精灵列表
 const activeSpriteList = ref([]);
 
-const cpnsMap = {}
+const cpnsMap: any = {};
 
 // 对齐线
 const auxiliaryLineList = ref([]);
@@ -100,10 +99,11 @@ const inactiveList = computed(() => {
  * 添加精灵到画布
  * @param {ISprite | ISprite[]} sprite
  */
-function addSpriteToStage({ name }: any) {
+function addSpriteToStage({ name }: { name: SPRITE_NAME }) {
   const meta = default_sprite_data[name];
-  cpnsMap[name] = meta[name]
-  const _data = meta.createInitData()
+  console.log(meta, "meta");
+  cpnsMap[name] = meta.component;
+  const _data = meta.createInitData();
   const sprite = {
     ..._data,
     id: name + Math.random(),
@@ -112,6 +112,7 @@ function addSpriteToStage({ name }: any) {
   //   // spriteList.value.push(...sprite);
   // } else {
   spriteList.value.push(sprite);
+
   // }
 }
 
