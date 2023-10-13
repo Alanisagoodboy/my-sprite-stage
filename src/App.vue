@@ -22,24 +22,34 @@
           :sprite="sprite"
           :key="sprite.id"
         >
-          <component :is="cpnsMap[sprite.type]" :sprite="sprite"></component>
+          <component
+            :is="registerSpriteMetaMap[sprite.type].component"
+            :sprite="sprite"
+          ></component>
 
           <!-- 在精灵容器中加入锚点渲染器 -->
-          <AnchorPoints :sprite="sprite" />
+          <AnchorPoints
+            :sprite="sprite"
+            @select="handleSelect"
+            @anchor-point-move="handleAnchorPointMove"
+          />
         </SpriteContainer>
 
-        <line
+        <!-- 辅助线 -->
+        <!-- <line
           v-for="line of auxiliaryLineList"
           :key="JSON.stringify(line)"
           v-bind="line"
           stroke="#0067ed"
           strokeDasharray="4 4"
-        ></line>
+        ></line> -->
 
         <!-- 活跃的精灵容器：提供移动旋转缩放选中的能力 -->
         <ActiveSpritesContainer
+          v-if="spriteList.length"
           :active-index="activeIndex"
           :spriteList="spriteList"
+          :registerSpriteMetaMap="registerSpriteMetaMap"
           @move="move"
           @rotate="rotate"
           @resize="resize"
@@ -56,10 +66,14 @@ import SpriteContainer from "./components/sprite/sprite-container.vue";
 import ActiveSpritesContainer from "./components/sprite/active-sprites-container.vue";
 import AnchorPoints from "./components/sprite/anchor-point/anchor-points.vue";
 import GridLine from "./components/stage/grid-line.vue";
-import { ref, computed } from "vue";
+import { ref, computed, unref, shallowRef, provide } from "vue";
 
 import { default_sprite_data } from "./components/meta-data/index";
-import { ISprite, SPRITE_NAME } from "./components/meta-data/types";
+import {
+  ISprite,
+  ISpriteMeta,
+  SPRITE_NAME,
+} from "./components/meta-data/types";
 import { HANDLER, IBox } from "./utils/types";
 import { getAuxiliaryLine, handleAdsorb } from "./utils";
 
@@ -77,7 +91,8 @@ const spriteList = ref<ISprite[]>([]);
 // 活跃（被选中）状态的精灵列表
 const activeSpriteList = ref([]);
 
-const cpnsMap: any = {};
+// 已经注册的精灵map
+const registerSpriteMetaMap: any = shallowRef({});
 
 // 对齐线
 const auxiliaryLineList = ref([]);
@@ -96,14 +111,27 @@ const inactiveList = computed(() => {
 });
 
 /**
+ *
+ * 注册精灵
+ */
+
+function registerSprite(spriteMeta: ISpriteMeta) {
+  if (registerSpriteMetaMap.value?.[spriteMeta.type]) {
+    console.warn(`Sprite ${spriteMeta.type} 已经注册`);
+    return;
+  }
+  registerSpriteMetaMap.value[spriteMeta.type] = spriteMeta;
+}
+
+/**
  * 添加精灵到画布
  * @param {ISprite | ISprite[]} sprite
  */
 function addSpriteToStage({ name }: { name: SPRITE_NAME }) {
-  const meta = default_sprite_data[name];
-  console.log(meta, "meta");
-  cpnsMap[name] = meta.component;
-  const _data = meta.createInitData();
+  const spriteMeta = default_sprite_data[name];
+  registerSprite(spriteMeta);
+
+  const _data = spriteMeta.createInitData();
   const sprite = {
     ..._data,
     id: name + Math.random(),
@@ -158,24 +186,25 @@ function rotate(info: IBox) {
 function resize(info: IBox, handleType: HANDLER) {
   updateSpriteList(info);
 
-  const { lines, dx, dy } = getAuxiliaryLine(
+  const { lines /* , dx, dy  */ } = getAuxiliaryLine(
     { distance: 0 },
     { ...info },
     inactiveList.value,
-    { width: 600, height: 800 }
+    { width: 600, height: 800 },
+    {}
   );
   auxiliaryLineList.value = lines;
 
-  const newInfo = handleAdsorb({
-    rect: { ...info },
-    dx,
-    dy,
-    mode: "move",
-    resizePos: handleType,
-  });
-  console.log(newInfo, "newInfo");
+  // const newInfo = handleAdsorb({
+  //   rect: { ...info },
+  //   dx,
+  //   dy,
+  //   mode: "move",
+  //   resizePos: handleType,
+  // });
+  // console.log(newInfo, "newInfo");
 
-  updateSpriteList(newInfo);
+  updateSpriteList({ ...info });
 }
 
 // 选中精灵 时
@@ -186,6 +215,41 @@ function handleSelect(id: string) {
 
   activeIndex.value = index;
 }
+
+// 锚点移动时
+function handleAnchorPointMove(info: any) {
+  const sprite = spriteList.value[activeIndex.value];
+  // 如果是线段锚点
+  if (sprite.type === SPRITE_NAME.LINE) {
+    const m = ["start", "end"];
+    sprite.props[m[info.index]] = { x: info.x, y: info.y };
+    // const newBoxInfo = getBoxInfoByPoint(info.anchorPoints);
+    // updateSpriteList(newBoxInfo);
+  }
+}
+
+function getBoxInfoByPoint(point: { x: number; y: number }[]) {
+  const xList = point.map((m) => m.x);
+  const yList = point.map((m) => m.y);
+  console.log(xList, yList);
+
+  const minX = Math.min(...xList);
+  const maxX = Math.max(...xList);
+  const minY = Math.min(...yList);
+  const maxY = Math.max(...yList);
+
+  return {
+    x: minX,
+    y: minY,
+    width: maxX - minX,
+    height: maxY - minY,
+    rotate: 0,
+  };
+}
+
+// 向后代注入当前注册的精灵信息
+provide("registerSpriteMetaMap", registerSpriteMetaMap);
+
 defineOptions({
   name: "NewPage",
 });

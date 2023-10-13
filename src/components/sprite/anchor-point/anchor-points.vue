@@ -1,98 +1,115 @@
 <template>
-  <circle
-    ref="pointRef"
-    :style="{ cursor: 'pointer', ...style }"
-    filter="drop-shadow(rgba(0, 0, 0, 0.4) 0 0 5)"
-    :class="className"
-    :stroke="stroke"
-    :strokeWidth="strokeWidth"
-    :fill="fill"
-    :cx="x"
-    :cy="y"
-    :r="radius"
-    @mouseDown="onMouseDown"
-  />
+  <g>
+    <circle
+      r="3"
+      :cx="item.x"
+      :cy="item.y"
+      v-for="(item, index) of anchorPoints"
+      :key="index"
+      @pointerdown="handleDown($event, index)"
+    ></circle>
+  </g>
 </template>
 
 <script setup lang="ts">
+import { computed } from "vue";
+import { ISprite } from "../../meta-data/types";
+import { default_sprite_data } from "../../meta-data";
 
-import { useRefState } from "../../../hooks/useState";
-import { onMounted, ref } from "vue";
-
-defineProps<{
-  x?: number;
-  y?: number;
-  radius?: number;
-  stroke?: string;
-  strokeWidth?: number;
-  fill?: string;
-  id?: string;
-  className?: string;
-  style?: Record<string, any>;
-  //   onChange?: (point: IPoint) => void;
-  //   onMouseDown?: (point: IPoint, e: MouseEvent) => void;
-  //   onMouseMove?: (point: IPoint, e: MouseEvent) => void;
-  //   onMouseUp?: (point: IPoint, e: MouseEvent) => void;
+const p = defineProps<{
+  sprite: ISprite;
 }>();
 
-const emits = defineEmits([
-  "onChange",
-  "onMouseDown",
-  "onMouseMove",
-  "onMouseUp",
-]);
+const emits = defineEmits(["anchor-point-move", 'select']);
 
-const initPoint = { x: -1, y: -1 };
-const pointRef = ref();
-const [startPoint, setStartPoint] = useRefState(initPoint);
-const [startAnchorPoint, setStartAnchorPoint] = useRefState(initPoint);
-const [currentPoint, setCurrentPoint] = useRefState(initPoint);
-const [moving, setMoving] = useRefState(false);
+// 渲染的锚点信息
+const anchorPoints = computed(() => {
+  const sprite = p.sprite;
+  const metaData = default_sprite_data[sprite.type];
+  const { anchors } = metaData;
+  if (anchors) {
+    return anchors.getPoints({ sprite });
+  }
+  return [];
+});
 
-const getStatePoint = (e: MouseEvent) => {
-  const { pageX, pageY } = e;
-  // 计算在鼠标相对锚点的坐标
-  const point = {
-    x: pageX - startPoint.value.x + startAnchorPoint.value.x,
-    y: pageY - startPoint.value.y + startAnchorPoint.value.y,
-  };
-  return point;
+
+// 初始化 记录的点坐标
+let recordPointInfo = {
+  initPoint: {
+    x: 0,
+    y: 0,
+  },
+  initAnchorPoints: [],
+  downPoint: {
+    x: 0,
+    y: 0,
+  },
+
+  index: 0, // 记录操作的是第几个锚点
+
+  setInitPoint({ x, y }: { x: number; y: number }) {
+    this.initPoint.x = x;
+    this.initPoint.y = y;
+  },
+
+  setDownPoint({ x, y }: { x: number; y: number }) {
+    this.downPoint.x = x;
+    this.downPoint.y = y;
+  },
+
+  setIndex(index: number) {
+    this.index = index;
+  },
+
+  setInitAnchorPoints (index: number, point: { x: number; y: number }) {
+    this.initAnchorPoints[index] = point
+  }
 };
-// 鼠标拖动锚点
-function onMouseMove(e: MouseEvent) {
-  const newPoint = getStatePoint(e);
-  setCurrentPoint(newPoint);
-  emits("onChange", newPoint);
-  //   onChange(newPoint);
-  //   mouseMove(newPoint, e);
-  emits("onMouseMove", newPoint, e);
+
+// 按下
+function handleDown(e: MouseEvent, index: number) {
+  // 阻止冒泡 防止触发移动事件
+  e.stopPropagation();
+  emits("select", p.sprite.id)
+  // 记录此时的坐标信息
+console.log('--');
+
+  // 记录操作的是哪个点
+  recordPointInfo.setIndex(index)
+
+  // 缓存点的坐标系初始位置
+  recordPointInfo.setInitPoint({
+    x: anchorPoints.value[index].x,
+    y: anchorPoints.value[index].y,
+  });
+
+  // 记录鼠标按下视口坐标系的位置
+  recordPointInfo.setDownPoint({
+    x: e.clientX,
+    y: e.clientY,
+  });
+
+  document.addEventListener("mousemove", handleMove, false);
+  document.addEventListener("mouseup", handleUp, false);
 }
 
-// 鼠标抬起锚点
-function onMouseUp(e: MouseEvent) {
-  document.removeEventListener("mousemove", onMouseMove, true);
-  document.removeEventListener("mouseup", onMouseUp, true);
-  setStartPoint(initPoint);
-  setMoving(false);
-  //   mouseUp(currentPoint, e);
-  emits("onMouseUp", currentPoint, e);
+// 移动
+function handleMove(e: MouseEvent) {
+  console.log('k');
   
+  const { initPoint, downPoint, index } = recordPointInfo;
+  const x = e.clientX - downPoint.x + +initPoint.x;
+  const y = e.clientY - downPoint.y + +initPoint.y;
 
-  document.removeEventListener("mousemove", onMouseMove, true);
-  document.removeEventListener("mouseup", onMouseUp, true);
-}
-// 鼠标按下锚点
-function onMouseDown(e: MouseEvent) {
-  const { pageX: x, pageY: y } = e;
-  setStartPoint({ x, y });
-  setStartAnchorPoint({ x, y });
-  setMoving(true);
-  //   mouseDown({ x, y }, e);
-  emits("onMouseDown", { x, y }, e);
-
-  document.addEventListener("mousemove", onMouseMove, true);
-  document.addEventListener("mouseup", onMouseUp, true);
+  // 锚点移动事件 抛给父组件
+  recordPointInfo.setInitAnchorPoints(index, {x, y})
+  emits("anchor-point-move", { x, y, index, anchorPoints: recordPointInfo.initAnchorPoints });
 }
 
-onMounted(() => {});
+// 抬起
+function handleUp() {
+  document.removeEventListener("mousemove", handleMove, false);
+  document.removeEventListener("mouseup", handleUp, false);
+}
 </script>

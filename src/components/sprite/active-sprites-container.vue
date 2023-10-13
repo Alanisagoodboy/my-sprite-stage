@@ -1,30 +1,49 @@
 <template>
-  <g ref="dragRef" class="active-sprites-container" :transform="transform">
+  <g ref="dragRef"  class="active-sprites-container" :transform="transform">
+    <!-- <rect
+      x="0"
+      y="0"
+      :width="dragData.width"
+      :height="dragData.height"
+      stroke="#398cfe"
+      fill="transparent"
+    /> -->
+    <!-- <path
+      :d="`M0,0 L${dragData.width},${0} L${dragData.width},${
+        dragData.height
+      } Z`"
+    ></path> -->
+
     <slot>
       <!-- <text>{{ dragData.x }}---{{ dragData.y }}</text> -->
     </slot>
-
+    <!-- <rect
+      x="0"
+      y="0"
+      :width="dragData.width"
+      :height="dragData.height"
+      stroke="#398cfe"
+      fill="transparent"
+    >
+    </rect> -->
     <rect
-      v-for="dot of dotList"
+      v-for="dot of resizePoints"
       :key="dot.side"
       :width="dotSize"
       :height="dotSize"
-      fill="transparent"
+      fill="#fff"
       stroke-width="1"
-      stroke="#000"
+      stroke="#398cfe"
       v-bind="getHandlePoint(dragData, dot.side, dotSize)"
       @mousedown="onDotMousedown(dot, $event)"
     />
 
     <g
+      v-if="isShowRotate"
       @mousedown="onRotateMousedown"
       :transform="`translate(${+dragData.width / 2 - 5} , -30)`"
     >
-      <!-- <text y="-10">{{ parseInt(dragData.angle) }}</text> -->
-      <rect width="10" height="10"></rect>
-      <!-- <path
-        transform="scale(0.02)"
-        d="M482.773333 66.517333l148.181334 151.168a21.333333 21.333333 0 0 1 0 29.866667l-147.84 150.826667a21.333333 21.333333 0 0 1-28.16 2.090666l-2.346667-2.090666-27.050667-27.605334a21.333333 21.333333 0 0 1 0-29.866666l69.888-71.338667a304.64 304.64 0 1 0 318.421334 352.682667l1.024-6.826667c0.170667-1.408 0.426667-3.285333 0.64-5.632a21.333333 21.333333 0 0 1 22.314666-19.114667l42.666667 2.261334a21.333333 21.333333 0 0 1 20.224 22.4l-0.085333 1.024-1.194667 10.496A389.973333 389.973333 0 1 1 484.821333 184.746667l-59.306666-60.458667a21.333333 21.333333 0 0 1 0-29.866667l27.093333-27.605333a21.333333 21.333333 0 0 1 30.165333-0.298667z" /> -->
+      <circle r="5" stroke="#398cfe" fill="#fff"></circle>
     </g>
   </g>
 </template>
@@ -34,7 +53,6 @@ import {
   getHandlePoint,
   calcResizedBoxInfo,
   findParentByClass,
-  getAuxiliaryLine,
 } from "../../utils/index";
 import { HANDLER } from "../../utils/types";
 
@@ -58,52 +76,20 @@ onUnmounted(() => {
   document.removeEventListener("pointerdown", onMousedown, false);
 });
 
-const dotSize = 10;
+const dotSize = 6;
 
 const props = defineProps({
-  boundary: {
-    // 边界
-    type: Boolean,
-  },
-  width: {
-    type: Number,
-    default: 100,
-  },
-  height: {
-    type: Number,
-    default: 100,
-  },
-  x: {
-    type: Number,
-    default: 0,
-  },
-  y: {
-    type: Number,
-    default: 0,
-  },
-  rotate: {
-    type: Number,
-    default: 0,
-  },
-  color: {
-    type: String,
-    default: "#3a7afe",
-  },
   activeIndex: {
     type: [Number],
     default: "0",
   },
-  updateActiveIndex: {
-    type: Function,
-    default: () => {},
-  },
-  updateActiveInfo: {
-    type: Function,
-    default: () => {},
-  },
   spriteList: {
     type: Array,
     default: [],
+  },
+  registerSpriteMetaMap: {
+    type: Object,
+    default: () => ({ a: 1 }),
   },
 });
 const emit = defineEmits(["move", "resize", "rotate", "select"]);
@@ -123,6 +109,30 @@ const dotList: IDot[] = [
   { side: HANDLER.BR, cursor: "se-resize" },
 ];
 
+// 形变点数组渲染
+const resizePoints = computed(() => {
+  const { registerSpriteMetaMap, activeIndex, spriteList } = props;
+  const activeMeta =
+    registerSpriteMetaMap[(spriteList[activeIndex] as ISprite).type];
+  // 拥有所有的形变点
+  if (activeMeta.resizePoints === "all") {
+    return dotList;
+  }
+
+  if (activeMeta.resizePoints === "empty") {
+    return [];
+  }
+});
+
+// 旋转操作杆渲染
+const isShowRotate = computed(() => {
+  const { registerSpriteMetaMap, activeIndex, spriteList } = props;
+  const activeMeta =
+    registerSpriteMetaMap[(spriteList[activeIndex] as ISprite).type];
+  return activeMeta.isShowRotateHandle;
+});
+
+// 坐标变换
 const transform = computed(() => {
   const centerX = dragData.value.x + dragData.value.width / 2;
   const centerY = dragData.value.y + dragData.value.height / 2;
@@ -147,7 +157,7 @@ function onDotMousedown(dotInfo: IDot, e: MouseEvent) {
   const editorRectInfo = svgRef.value.getBoundingClientRect();
 
   // 4.精确计算句柄的坐标
-  const handleRectInfo = e.target.getBoundingClientRect();
+  const handleRectInfo = e.target!.getBoundingClientRect();
 
   const handlePoint = {
     x: handleRectInfo.left - editorRectInfo.left + handleRectInfo.width / 2,
@@ -208,7 +218,7 @@ const dragData = ref({
 });
 
 function getActiveBoxInfo() {
-  const active: ISprite = props.spriteList[props.activeIndex];
+  const active: any = props.spriteList[props.activeIndex];
   const { coordinate, size, angle } = JSON.parse(JSON.stringify(active.attrs));
   return {
     x: coordinate.x,
@@ -223,8 +233,11 @@ function getActiveBoxInfo() {
  * 鼠标按下事件
  */
 async function onMousedown(e: MouseEvent) {
-  //
+  console.log(e.target, 'e.target');
+  
   const spriteDom = findParentByClass(e.target, "sprite-container");
+  console.log(spriteDom, "spriteDom");
+
   if (!spriteDom) return;
 
   // 查找 id 点击的精灵的id
