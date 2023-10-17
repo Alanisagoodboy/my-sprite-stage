@@ -1,13 +1,13 @@
 /* 线段精灵 元数据 */
 import { ISprite, ISpriteMeta, SPRITE_NAME } from "../types";
-import LineSprite from "../../sprite/line-sprite/index.vue";
-export const lineSpriteMeta: ISpriteMeta = {
-  title: "线段",
+import PolylineSprite from "../../sprite/polyline-sprite/index.vue";
+export const polylineSpriteMeta: ISpriteMeta = {
+  title: "折线",
   // 初始化描述数据
   createInitData() {
     return {
       id: "LineSpriteMeta1",
-      type: SPRITE_NAME.LINE,
+      type: SPRITE_NAME.POLYLINE,
       attrs: {
         stroke: "#84db92",
         strokeWidth: 3,
@@ -20,19 +20,23 @@ export const lineSpriteMeta: ISpriteMeta = {
             x: 30,
             y: 40,
           },
+          {
+            x: 60,
+            y: 40,
+          },
         ],
       },
       boundingBox: {
         x: 30,
         y: 100,
-        width: 30,
+        width: 60,
         height: 40,
       },
     };
   },
-  type: SPRITE_NAME.LINE,
+  type: SPRITE_NAME.POLYLINE,
   // 组件
-  component: LineSprite,
+  component: PolylineSprite,
   resizePoints: "empty", // 为空代表没有缩放的点
   isShowRotateHandle: false, // 是否显示旋转操作杆
   // 锚点

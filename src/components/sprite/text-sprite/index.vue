@@ -1,17 +1,16 @@
-<!-- 矩形精灵 -->
+<!-- 文本精灵 -->
 <template>
   <g>
-    <rect v-bind="bind" fill="#398cfe" stroke-width="3"><slot /></rect>
     <foreignObject x="0" y="0" :width="f.width" :height="f.height">
       <div
         ref="editDivRef"
         xmlns="http://www.w3.org/1999/xhtml"
         contenteditable="true"
         spellcheck="false"
-        style="width: fit-content"
+        style="width: fit-content;"
         @input="handleTextInput"
       >
-        <div style="text-align: left">hello</div>
+        {{ '你好' }}
       </div>
     </foreignObject>
   </g>
@@ -20,7 +19,7 @@
 import { ISprite } from "../../meta-data/types";
 import { computed, onMounted, ref } from "vue";
 defineOptions({
-  name: "rect-sprite",
+  name: "text-sprite",
 });
 
 const props = defineProps<{
@@ -29,28 +28,24 @@ const props = defineProps<{
 
 const f = ref({
   width: 0,
-  height: 0,
-});
-const editDivRef = ref(null);
+  height: 0
+})
+const editDivRef = ref(null)
 
-function autoCalcTextSize() {
-  const rect = editDivRef.value.getBoundingClientRect();
+function autoCalcTextSize () {
+  const rect = (editDivRef.value)!.getBoundingClientRect()
   f.value.height = rect.height;
-  f.value.width = rect.width;
+  f.value.width = rect.width
 }
-onMounted(() => {
-  autoCalcTextSize();
-});
+onMounted(()=>{
+  autoCalcTextSize()
+})
 function handleTextInput() {
-  autoCalcTextSize();
+  autoCalcTextSize()
 }
 
 const bind = computed(() => {
-  const { x, y, width, height } = props.sprite?.boundingBox;
-  const centerPoint = {
-    x: x + width / 2,
-    y: y + height / 2,
-  };
+  const {  width, height} = props.sprite?.boundingBox || {};
   return {
     x: 0,
     y: 0,

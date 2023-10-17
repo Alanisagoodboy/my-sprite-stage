@@ -4,7 +4,6 @@
     class="sprite-container"
     :transform="transform"
   >
-    <text>{{ sprite.id.slice(-5, 0) }}</text>
     <slot></slot>
   </g>
 </template>
@@ -20,16 +19,14 @@ const props = defineProps<{
 }>();
 
 const transform = computed(() => {
-  const { angle, coordinate, size } = props.sprite?.attrs || {};
-  const { x, y } = coordinate;
-  const { width, height } = size;
+  const { x, y, height, width } = props.sprite?.boundingBox || {};
   const centerPoint = {
     x: x + width / 2,
     y: y + height / 2,
   };
-  const rotateStr = `rotate(${angle || 0}, ${centerPoint.x} ${centerPoint.y})`;
+  const rotateStr = `rotate(${0},${centerPoint.x} ${centerPoint.y})`;
   const translateStr = `translate(${x},${y})`;
-  return `${angle === 0 ? "" : rotateStr} ${translateStr}`;
+  return `${rotateStr} ${translateStr}`;
 });
 </script>
 

@@ -6,6 +6,8 @@
       :cy="item.y"
       v-for="(item, index) of anchorPoints"
       :key="index"
+      fill="#1e7fff"
+      filter="drop-shadow(rgba(0, 0, 0, 0.4) 0 0 5)"
       @pointerdown="handleDown($event, index)"
     ></circle>
   </g>
@@ -20,7 +22,22 @@ const p = defineProps<{
   sprite: ISprite;
 }>();
 
-const emits = defineEmits(["anchor-point-move", 'select']);
+const emits = defineEmits([
+  "anchor-point-move",
+  "select",
+  "anchor-point-move-end",
+]);
+
+const boxInfo = computed(() => {
+  const { width, height, x, y } = p.sprite.boundingBox;
+
+  return {
+    x,
+    y,
+    width,
+    height,
+  };
+});
 
 // 渲染的锚点信息
 const anchorPoints = computed(() => {
@@ -33,13 +50,18 @@ const anchorPoints = computed(() => {
   return [];
 });
 
-
 // 初始化 记录的点坐标
 let recordPointInfo = {
+  // 线段左上角的坐标信息
+  ltInfoInStage: {
+    x: 0,
+    y: 0,
+  },
   initPoint: {
     x: 0,
     y: 0,
   },
+  targetAnchorPoints: [],
   initAnchorPoints: [],
   downPoint: {
     x: 0,
@@ -58,25 +80,44 @@ let recordPointInfo = {
     this.downPoint.y = y;
   },
 
+  setLtInfoInStage({ x, y }: { x: number; y: number }) {
+    this.ltInfoInStage.x = x;
+    this.ltInfoInStage.y = y;
+  },
+
   setIndex(index: number) {
     this.index = index;
   },
 
-  setInitAnchorPoints (index: number, point: { x: number; y: number }) {
-    this.initAnchorPoints[index] = point
-  }
+  setInitAnchorPoints(index: number, point: { x: number; y: number }) {
+    this.initAnchorPoints[index] = point;
+  },
+
+  setTargetAnchorPoints(index: number, point: { x: number; y: number }) {
+    this.targetAnchorPoints[index] = point;
+  },
 };
 
 // 按下
 function handleDown(e: MouseEvent, index: number) {
   // 阻止冒泡 防止触发移动事件
   e.stopPropagation();
-  emits("select", p.sprite.id)
+  // 阻止默认拖拽等事件，防止无法触发up事件
+  e.preventDefault();
+  emits("select", p.sprite.id);
+
   // 记录此时的坐标信息
-console.log('--');
+  console.log("--");
 
   // 记录操作的是哪个点
-  recordPointInfo.setIndex(index)
+  recordPointInfo.setIndex(index);
+
+  recordPointInfo.targetAnchorPoints = [...anchorPoints.value];
+
+  recordPointInfo.ltInfoInStage = {
+    x: p.sprite.boundingBox.x,
+    y: p.sprite.boundingBox.y,
+  };
 
   // 缓存点的坐标系初始位置
   recordPointInfo.setInitPoint({
@@ -90,26 +131,38 @@ console.log('--');
     y: e.clientY,
   });
 
-  document.addEventListener("mousemove", handleMove, false);
-  document.addEventListener("mouseup", handleUp, false);
+  document.addEventListener("pointerup", handleUp, false);
+  document.addEventListener("pointermove", handleMove, false);
 }
 
 // 移动
 function handleMove(e: MouseEvent) {
-  console.log('k');
-  
   const { initPoint, downPoint, index } = recordPointInfo;
   const x = e.clientX - downPoint.x + +initPoint.x;
   const y = e.clientY - downPoint.y + +initPoint.y;
 
   // 锚点移动事件 抛给父组件
-  recordPointInfo.setInitAnchorPoints(index, {x, y})
-  emits("anchor-point-move", { x, y, index, anchorPoints: recordPointInfo.initAnchorPoints });
+  recordPointInfo.setTargetAnchorPoints(index, { x, y });
+  emits("anchor-point-move", {
+    id: p.sprite.id,
+    x,
+    y,
+    index,
+    initPoint,
+    ltInfoInStage: { ...recordPointInfo.ltInfoInStage },
+    targetAnchorPoints: [...recordPointInfo.targetAnchorPoints],
+    anchorPoints: [...anchorPoints.value],
+  });
 }
 
 // 抬起
 function handleUp() {
-  document.removeEventListener("mousemove", handleMove, false);
-  document.removeEventListener("mouseup", handleUp, false);
+  emits("anchor-point-move-end", {
+    initPoint: { ...recordPointInfo.initPoint },
+    targetAnchorPoints: [...recordPointInfo.targetAnchorPoints],
+    anchorPoints: [...anchorPoints.value],
+  });
+  document.removeEventListener("pointerup", handleUp, false);
+  document.removeEventListener("pointermove", handleMove, false);
 }
 </script>

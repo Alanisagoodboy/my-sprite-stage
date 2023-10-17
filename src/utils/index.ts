@@ -1,10 +1,15 @@
+import {
+  IBoundingBox,
+  ICoordinate,
+  ISize,
+} from "../components/meta-data/types";
 import { IBox, IPoint, HANDLER } from "./types";
 
 // 获得旋转后的点
 function getRotatedPoint(
   point: IPoint,
   center: IPoint,
-  rotate: number
+  rotate: number = 0
 ): IPoint {
   /**
    * 旋转公式：
@@ -44,7 +49,7 @@ function getCenterPoint(p1: IPoint, p2: IPoint): IPoint {
   };
 }
 
-function calculateTopLeft(style, curPositon, symmetricPoint) {
+function calculateTopLeft(style: any, curPositon: any, symmetricPoint: any) {
   // 1. 根据当前句柄坐标以及对称点 计算出新的中心点
   const newCenterPoint = getCenterPoint(curPositon, symmetricPoint);
 
@@ -52,14 +57,14 @@ function calculateTopLeft(style, curPositon, symmetricPoint) {
   const newTopLeftPoint = getRotatedPoint(
     curPositon,
     newCenterPoint,
-    -style.rotate
+    0 ?? -style.rotate
   );
 
   // 3. 根据旋转公式计算出 句柄对称点 的坐标
   const newBottomRightPoint = getRotatedPoint(
     symmetricPoint,
     newCenterPoint,
-    -style.rotate
+    0 ?? -style.rotate
   );
 
   // 得到的新的宽度为
@@ -75,7 +80,7 @@ function calculateTopLeft(style, curPositon, symmetricPoint) {
   return style;
 }
 
-function calculateTopRight(style, curPositon, symmetricPoint) {
+function calculateTopRight(style: any, curPositon: any, symmetricPoint: any) {
   // 1. 根据当前句柄坐标以及对称点 计算出新的中心点
   const newCenterPoint = getCenterPoint(curPositon, symmetricPoint);
 
@@ -83,14 +88,14 @@ function calculateTopRight(style, curPositon, symmetricPoint) {
   const newTopLeftPoint = getRotatedPoint(
     curPositon,
     newCenterPoint,
-    -style.rotate
+    0 ?? -style.rotate
   );
 
   // 3. 根据旋转公式计算出 句柄对称点 的坐标
   const newBottomRightPoint = getRotatedPoint(
     symmetricPoint,
     newCenterPoint,
-    -style.rotate
+    0 ?? -style.rotate
   );
 
   // 得到的新的宽度为
@@ -106,7 +111,7 @@ function calculateTopRight(style, curPositon, symmetricPoint) {
   return style;
 }
 
-function calculateLeftMiddle(style, curPositon, symmetricPoint) {
+function calculateLeftMiddle(style: any, curPositon: any, symmetricPoint: any) {
   // 1. 根据当前句柄坐标以及对称点 计算出新的中心点
   const newCenterPoint = getCenterPoint(curPositon, symmetricPoint);
 
@@ -114,14 +119,14 @@ function calculateLeftMiddle(style, curPositon, symmetricPoint) {
   const newTopLeftPoint = getRotatedPoint(
     curPositon,
     newCenterPoint,
-    -style.rotate
+    0 ?? -style.rotate
   );
 
   // 3. 根据旋转公式计算出 句柄对称点 的坐标
   const newBottomRightPoint = getRotatedPoint(
     symmetricPoint,
     newCenterPoint,
-    -style.rotate
+    0 ?? -style.rotate
   );
 
   // 得到的新的宽度为
@@ -147,7 +152,7 @@ function getKeyVariable(handler: HANDLER, currentInfo: IBox) {
     y: currentInfo.y,
     width: currentInfo.width,
     height: currentInfo.height,
-    rotate: currentInfo.rotate,
+    rotate: 0 ?? currentInfo.rotate,
   };
   const center = {
     x: rect.x + rect.width / 2,
@@ -190,56 +195,139 @@ function getPoint(rect: IBox, center: IPoint, position: HANDLER): IPoint {
         x: rect.x,
         y: rect.y,
       };
-      return getRotatedPoint(point, center, rect.rotate);
+      return getRotatedPoint(point, center, 0 ?? rect.rotate);
     case "top-middle":
       point = {
         x: rect.x + rect.width / 2,
         y: rect.y,
       };
-      return getRotatedPoint(point, center, rect.rotate);
+      return getRotatedPoint(point, center, 0 ?? rect.rotate);
     case "top-right":
       point = {
         x: rect.x + rect.width,
         y: rect.y,
       };
-      return getRotatedPoint(point, center, rect.rotate);
+      return getRotatedPoint(point, center, 0 ?? rect.rotate);
     case "bottom-left":
       point = {
         x: rect.x,
         y: rect.y + rect.height,
       };
-      return getRotatedPoint(point, center, rect.rotate);
+      return getRotatedPoint(point, center, 0 ?? rect.rotate);
     case "bottom-middle":
       point = {
         x: rect.x + rect.width / 2,
         y: rect.y + rect.height,
       };
-      return getRotatedPoint(point, center, rect.rotate);
+      return getRotatedPoint(point, center, 0 ?? rect.rotate);
     case "bottom-right":
       point = {
         x: rect.x + rect.width,
         y: rect.y + rect.height,
       };
-      return getRotatedPoint(point, center, rect.rotate);
+      return getRotatedPoint(point, center, 0 ?? rect.rotate);
     case "middle-left":
       point = {
         x: rect.x,
         y: rect.y + rect.height / 2,
       };
-      return getRotatedPoint(point, center, rect.rotate);
+      return getRotatedPoint(point, center, 0 ?? rect.rotate);
     case "middle-right":
       point = {
         x: rect.x + rect.width,
         y: rect.y + rect.height / 2,
       };
-      return getRotatedPoint(point, center, rect.rotate);
+      return getRotatedPoint(point, center, 0 ?? rect.rotate);
     default:
       point = {
         x: rect.x,
         y: rect.y,
       };
-      return getRotatedPoint(point, center, rect.rotate);
+      return getRotatedPoint(point, center, 0 ?? rect.rotate);
   }
+}
+
+/**
+ * 计算形变，不考虑旋转
+ */
+export function calcResizedBoxInfoWithoutRotate({
+  handleType,
+  rect,
+  startEv,
+  moveEv,
+}: {
+  handleType: HANDLER;
+  rect: IBoundingBox;
+  startEv: MouseEvent;
+  moveEv: MouseEvent;
+}) {
+  let boxInfo = {
+    ...rect,
+    dx: moveEv.clientX - startEv.clientX,
+    dy: moveEv.clientY - startEv.clientY,
+  };
+
+  switch (handleType) {
+    case "top-left":
+      boxInfo.x += boxInfo.dx;
+      boxInfo.y += boxInfo.dy;
+      boxInfo.width -= boxInfo.dx;
+      boxInfo.height -= boxInfo.dy;
+      break;
+    case "top-middle":
+      boxInfo.y += boxInfo.dy;
+      boxInfo.height -= boxInfo.dy;
+      break;
+    case "top-right":
+      boxInfo.y += boxInfo.dy;
+      boxInfo.width += boxInfo.dx;
+      boxInfo.height -= boxInfo.dy;
+      break;
+    case "bottom-left":
+      boxInfo.x += boxInfo.dx;
+      boxInfo.width -= boxInfo.dx;
+      boxInfo.height += boxInfo.dy;
+      break;
+    case "bottom-middle":
+      boxInfo.height += boxInfo.dy;
+      break;
+    case "bottom-right":
+      boxInfo.width += boxInfo.dx;
+      boxInfo.height += boxInfo.dy;
+      break;
+    case "middle-left":
+      boxInfo.x += boxInfo.dx;
+      boxInfo.width -= boxInfo.dx;
+      break;
+    case "middle-right":
+      boxInfo.width += boxInfo.dx;
+      break;
+    default:
+      break;
+  }
+
+  return {
+    // 盒子信息
+    boundingBox: {
+      x: boxInfo.x,
+      y: boxInfo.y,
+      width: boxInfo.width,
+      height: boxInfo.height,
+    },
+    // 各个参数偏移量
+    offset: {
+      x: boxInfo.x - rect.x,
+      y: boxInfo.y - rect.y,
+      width: boxInfo.width - rect.width,
+      height: boxInfo.height - rect.height,
+    },
+    percent: {
+      x: boxInfo.x / rect.x,
+      y: boxInfo.y / rect.y,
+      width: boxInfo.width / rect.width,
+      height: boxInfo.height / rect.height,
+    },
+  };
 }
 
 function getLength(x: number, y: number): number {
@@ -266,9 +354,9 @@ function distance(p1: IPoint, p2: IPoint) {
  * @returns 旋转后的点坐标
  */
 export const rotate = (
-  point: Point,
+  point: ICoordinate,
   deg: number,
-  o: Point = { x: 0, y: 0 }
+  o: ICoordinate = { x: 0, y: 0 }
 ) => {
   const dis = distance(point, o);
   const k = (point.y - o.y) / (point.x - o.x);
@@ -380,12 +468,12 @@ function calcResizedBoxInfo(options: {
     let newTopRightPoint = getRotatedPoint(
       symmetricPoint,
       newCenterPoint,
-      -originBoxInfo.rotate
+      0 // 0 ?? -originBoxInfo.rotate
     );
     let newBottomLeftPoint = getRotatedPoint(
       curPositon,
       newCenterPoint,
-      -originBoxInfo.rotate
+      0 // 0 ?? -originBoxInfo.rotate
     );
 
     resizeBoxInfo.height = newBottomLeftPoint.y - newTopRightPoint.y;
@@ -399,12 +487,12 @@ function calcResizedBoxInfo(options: {
     let newTopleftPoint = getRotatedPoint(
       symmetricPoint,
       newCenterPoint,
-      -originBoxInfo.rotate
+      0 /* ?? -originBoxInfo.rotate */
     );
     let newBottomRightPoint = getRotatedPoint(
       curPositon,
       newCenterPoint,
-      -originBoxInfo.rotate
+      0 /* ?? -originBoxInfo.rotate */
     );
 
     resizeBoxInfo.height = newBottomRightPoint.y - newTopleftPoint.y;
@@ -418,12 +506,12 @@ function calcResizedBoxInfo(options: {
     let newBottomLeftPoint = getRotatedPoint(
       symmetricPoint,
       newCenterPoint,
-      -originBoxInfo.rotate
+      0 /*  ?? -originBoxInfo.rotate */
     );
     let newTopleftPoint = getRotatedPoint(
       curPositon,
       newCenterPoint,
-      -originBoxInfo.rotate
+      0 /* ?? -originBoxInfo.rotate */
     );
 
     resizeBoxInfo.height = newBottomLeftPoint.y - newTopleftPoint.y;
@@ -437,12 +525,12 @@ function calcResizedBoxInfo(options: {
     let newBottomLeftPoint = getRotatedPoint(
       symmetricPoint,
       newCenterPoint,
-      -originBoxInfo.rotate
+      0 /* ?? -originBoxInfo.rotate */
     );
     let newTopRightPoint = getRotatedPoint(
       curPositon,
       newCenterPoint,
-      -originBoxInfo.rotate
+      0 /* ?? -originBoxInfo.rotate */
     );
 
     resizeBoxInfo.height = newBottomLeftPoint.y - newTopRightPoint.y;
@@ -457,7 +545,7 @@ function calcResizedBoxInfo(options: {
     const rotatedcurPositon = getRotatedPoint(
       curPositon,
       handlePoint,
-      -originBoxInfo.rotate
+      0 /* ?? -originBoxInfo.rotate */
     );
 
     // 算出旋转前 y 坐标，再用 curPoint 的 x 坐标，重新计算它们旋转后对应的坐标
@@ -467,7 +555,7 @@ function calcResizedBoxInfo(options: {
         y: rotatedcurPositon.y,
       },
       handlePoint,
-      originBoxInfo.rotate
+      0 ?? originBoxInfo.rotate
     );
 
     // 用旋转后的坐标和对称点算出新的高度（勾股定理）
@@ -494,7 +582,7 @@ function calcResizedBoxInfo(options: {
     const rotatedcurPositon = getRotatedPoint(
       curPositon,
       handlePoint,
-      -originBoxInfo.rotate
+      0 /* ?? -originBoxInfo.rotate */
     );
     const rotatedRightMiddlePoint = getRotatedPoint(
       {
@@ -502,7 +590,7 @@ function calcResizedBoxInfo(options: {
         y: handlePoint.y,
       },
       handlePoint,
-      originBoxInfo.rotate
+      0 ?? originBoxInfo.rotate
     );
 
     const newWidth = Math.sqrt(
@@ -528,7 +616,7 @@ function calcResizedBoxInfo(options: {
     const rotatedcurPositon = getRotatedPoint(
       curPositon,
       handlePoint,
-      -resizeBoxInfo.rotate
+      0 /* ?? -resizeBoxInfo.rotate */
     );
     const rotatedBottomMiddlePoint = getRotatedPoint(
       {
@@ -536,7 +624,7 @@ function calcResizedBoxInfo(options: {
         y: rotatedcurPositon.y,
       },
       handlePoint,
-      resizeBoxInfo.rotate
+      0 /* ?? resizeBoxInfo.rotate */
     );
 
     const newHeight = Math.sqrt(
@@ -562,7 +650,7 @@ function calcResizedBoxInfo(options: {
     const rotatedcurPositon = getRotatedPoint(
       curPositon,
       handlePoint,
-      -resizeBoxInfo.rotate
+      0 /* ?? -resizeBoxInfo.rotate */
     );
     const rotatedPoint = getRotatedPoint(
       {
@@ -570,7 +658,7 @@ function calcResizedBoxInfo(options: {
         y: handlePoint.y,
       },
       handlePoint,
-      resizeBoxInfo.rotate
+      0 ?? resizeBoxInfo.rotate
     );
 
     const newWidth = Math.sqrt(
@@ -618,7 +706,6 @@ function createLatLngOfRotate(param: {
   };
 }
 
-
 /**
  * 根据类名寻找父元素
  * @param dom dom元素
@@ -636,10 +723,42 @@ function findParentByClass(dom: any, className: string): any {
 }
 
 /**
+ * 根据类名寻找精灵
+ * @param dom dom元素
+ * @param className css类名
+ * @return dom | null
+ */
+export function findSpriteDomByClass(dom: any, className: string): any {
+  const domList = findParentListByClass(dom, className);
+  return domList.pop();
+}
+
+/**
+ * 根据类名寻找所有满足条件的父元素
+ * @param dom dom元素
+ * @param className css类名
+ * @return dom | null
+ */
+export function findParentListByClass(_dom: any, _className: string): any {
+  const domList: any[] = [];
+  const dfs = (dom: any, className: string): any => {
+    if (!dom || dom.tagName === "BODY") {
+      return;
+    }
+    if (dom.classList.contains(className)) {
+      domList.push(dom);
+    }
+    return dfs(dom.parentNode, className);
+  };
+
+  dfs(_dom, _className);
+  return domList;
+}
+
+/**
  * 怎么计算两点间连线的倾斜角？
  * Math.atan2(y2-y1,x2-x1)*180/Math.PI
  */
-
 
 /**
  * 计算元素之间靠近时的对其辅助线，以及吸附的修正距离
@@ -649,13 +768,13 @@ function findParentByClass(dom: any, className: string): any {
  * @returns 辅助线数组和吸附定位
  */
 export const getAuxiliaryLine = (
-  adsorbLine: IAdsorbLine,
-  spriteRect: ISizeCoordinate,
-  _rectList: ISizeCoordinate[],
+  adsorbLine: any,
+  spriteRect: IBoundingBox,
+  _rectList: IBoundingBox[],
   canvasSize: ISize,
   // 四个方向上是否禁止计算吸附线，例如正在拖动右侧，则左侧就不用计算了
   disableAdsorbSide: Record<string, boolean>,
-  adsorbCanvas = true,
+  adsorbCanvas = true
 ) => {
   // 正在拖拽中的矩形的各个边信息
   const rectLeft = spriteRect.x;
@@ -671,7 +790,7 @@ export const getAuxiliaryLine = (
   const rectList = [..._rectList];
   // 增加一个和舞台同样大小的虚拟元素，用来和舞台对齐
   if (adsorbCanvas) {
-    const canvasBackground: ISizeCoordinate = { x: 0, y: 0, ...canvasSize };
+    const canvasBackground: IBoundingBox = { x: 0, y: 0, ...canvasSize };
     rectList.push(canvasBackground);
   }
   let dx = 0;
@@ -688,29 +807,29 @@ export const getAuxiliaryLine = (
 
     // x和y方向各自取开始、中间、结束三个位置，枚举出共18种情况
     const array = [
-      { pos: 'x', sourcePos: 'left', source: rectLeft, target: left },
-      { pos: 'x', sourcePos: 'left', source: rectLeft, target: centerX },
-      { pos: 'x', sourcePos: 'left', source: rectLeft, target: right },
+      { pos: "x", sourcePos: "left", source: rectLeft, target: left },
+      { pos: "x", sourcePos: "left", source: rectLeft, target: centerX },
+      { pos: "x", sourcePos: "left", source: rectLeft, target: right },
 
-      { pos: 'x', sourcePos: 'centerX', source: rectCenterX, target: left },
-      { pos: 'x', sourcePos: 'centerX', source: rectCenterX, target: centerX },
-      { pos: 'x', sourcePos: 'centerX', source: rectCenterX, target: right },
+      { pos: "x", sourcePos: "centerX", source: rectCenterX, target: left },
+      { pos: "x", sourcePos: "centerX", source: rectCenterX, target: centerX },
+      { pos: "x", sourcePos: "centerX", source: rectCenterX, target: right },
 
-      { pos: 'x', sourcePos: 'right', source: rectRight, target: left },
-      { pos: 'x', sourcePos: 'right', source: rectRight, target: centerX },
-      { pos: 'x', sourcePos: 'right', source: rectRight, target: right },
+      { pos: "x", sourcePos: "right", source: rectRight, target: left },
+      { pos: "x", sourcePos: "right", source: rectRight, target: centerX },
+      { pos: "x", sourcePos: "right", source: rectRight, target: right },
 
-      { pos: 'y', sourcePos: 'top', source: rectTop, target: top },
-      { pos: 'y', sourcePos: 'top', source: rectTop, target: centerY },
-      { pos: 'y', sourcePos: 'top', source: rectTop, target: bottom },
+      { pos: "y", sourcePos: "top", source: rectTop, target: top },
+      { pos: "y", sourcePos: "top", source: rectTop, target: centerY },
+      { pos: "y", sourcePos: "top", source: rectTop, target: bottom },
 
-      { pos: 'y', sourcePos: 'centerY', source: rectCenterY, target: top },
-      { pos: 'y', sourcePos: 'centerY', source: rectCenterY, target: centerY },
-      { pos: 'y', sourcePos: 'centerY', source: rectCenterY, target: bottom },
+      { pos: "y", sourcePos: "centerY", source: rectCenterY, target: top },
+      { pos: "y", sourcePos: "centerY", source: rectCenterY, target: centerY },
+      { pos: "y", sourcePos: "centerY", source: rectCenterY, target: bottom },
 
-      { pos: 'y', sourcePos: 'bottom', source: rectBottom, target: top },
-      { pos: 'y', sourcePos: 'bottom', source: rectBottom, target: centerY },
-      { pos: 'y', sourcePos: 'bottom', source: rectBottom, target: bottom },
+      { pos: "y", sourcePos: "bottom", source: rectBottom, target: top },
+      { pos: "y", sourcePos: "bottom", source: rectBottom, target: centerY },
+      { pos: "y", sourcePos: "bottom", source: rectBottom, target: bottom },
     ];
 
     const minX = Math.min(left, rectLeft);
@@ -727,7 +846,7 @@ export const getAuxiliaryLine = (
           !sourcePosSpaceMap[e.sourcePos] ||
           Math.abs(sourcePosSpaceMap[e.sourcePos].space) < Math.abs(space)
         ) {
-          if (e.pos === 'x') {
+          if (e.pos === "x") {
             dx = space;
           } else {
             dy = space;
@@ -735,10 +854,10 @@ export const getAuxiliaryLine = (
           sourcePosSpaceMap[e.sourcePos] = {
             space,
             line: {
-              x1: e.pos === 'x' ? e.target : minX,
-              x2: e.pos === 'x' ? e.target : maxX,
-              y1: e.pos === 'y' ? e.target : minY,
-              y2: e.pos === 'y' ? e.target : maxY,
+              x1: e.pos === "x" ? e.target : minX,
+              x2: e.pos === "x" ? e.target : maxX,
+              y1: e.pos === "y" ? e.target : minY,
+              y2: e.pos === "y" ? e.target : maxY,
             },
           };
         }
@@ -746,12 +865,11 @@ export const getAuxiliaryLine = (
     });
   }
   return {
-    lines: Object.values(sourcePosSpaceMap).map(e => e.line),
+    lines: Object.values(sourcePosSpaceMap).map((e) => e.line),
     dx,
     dy,
   };
 };
-
 
 // 处理吸附的修正距离作用与矩形上
 export const handleAdsorb = ({
@@ -763,14 +881,14 @@ export const handleAdsorb = ({
   // 移动还是缩放
   mode,
   // 正在缩放的锚点名
-  resizePos = '',
-  // 缩放是否移动到了反向，例如把右侧缩放锚点移动到矩形左侧  
+  resizePos = "",
+  // 缩放是否移动到了反向，例如把右侧缩放锚点移动到矩形左侧
   reverse = {},
 }: {
-  rect: ISizeCoordinate;
+  rect: IBoundingBox;
   dx: number;
   dy: number;
-  mode: IChangeMode;
+  mode: string;
   resizePos?: string;
   reverse?: any;
 }) => {
@@ -781,11 +899,11 @@ export const handleAdsorb = ({
     bottomReverse = false,
     topReverse = false,
   } = reverse;
-  if (mode === 'move') {
+  if (mode === "move") {
     spriteRect.x += dx;
     spriteRect.y += dy;
-  } else if (mode === 'resize') {
-    if (resizePos.includes('right')) {
+  } else if (mode === "resize") {
+    if (resizePos.includes("right")) {
       if (rightReverse) {
         spriteRect.x += dx;
         spriteRect.width -= dx;
@@ -793,7 +911,7 @@ export const handleAdsorb = ({
         spriteRect.width += dx;
       }
     }
-    if (resizePos.includes('left')) {
+    if (resizePos.includes("left")) {
       if (leftReverse) {
         spriteRect.width += dx;
       } else {
@@ -801,7 +919,7 @@ export const handleAdsorb = ({
         spriteRect.width -= dx;
       }
     }
-    if (resizePos.includes('top')) {
+    if (resizePos.includes("top")) {
       if (topReverse) {
         spriteRect.height += dy;
       } else {
@@ -809,7 +927,7 @@ export const handleAdsorb = ({
         spriteRect.height -= dy;
       }
     }
-    if (resizePos.includes('bottom')) {
+    if (resizePos.includes("bottom")) {
       if (bottomReverse) {
         spriteRect.y += dy;
         spriteRect.height -= dy;
@@ -823,7 +941,7 @@ export const handleAdsorb = ({
 
 // 网格吸附
 export const handleGridAdsorb = (
-  rect: IRect,
+  rect: IBoundingBox,
   gridCellWidth: number,
   gridCellHeight: number,
   adsorbWidth = 5,
@@ -831,14 +949,14 @@ export const handleGridAdsorb = (
   // 移动还是缩放
   changeMode: string,
   // 缩放时需要计算吸附的边
-  adsorbSides: Record<string, boolean> = {},
+  adsorbSides: Record<string, boolean> = {}
 ) => {
   const { x, y, width, height } = rect;
   const spriteRect = { ...rect };
   // 组件左或下方向被激活
   let leftActivated = true;
   let topActivated = true;
-  if (changeMode === 'resize') {
+  if (changeMode === "resize") {
     // resize的场景下，正在操作哪个方向的锚点就激活哪个方向
     leftActivated = adsorbSides.left;
     topActivated = adsorbSides.top;
@@ -869,7 +987,6 @@ export const handleGridAdsorb = (
   };
 };
 
-
 // 距离网格的最小距离
 export const minDisWithGrid = (n: number, unit: number) =>
   Math.min(n % unit, unit - (n % unit));
@@ -894,9 +1011,39 @@ export const roundingUnitize = (n: number, unit: number, adsorbDis = 4) => {
   return n;
 };
 
-
-
-
+/**
+ * @desc 获取多个坐标点包裹的盒子信息
+ * @param rectList 矩形块坐标数组
+ * @returns
+ */
+function getWrapperBoxInfo(rectList: IBoundingBox[]) {
+  const p = {
+    minX: Infinity,
+    minY: Infinity,
+    maxX: 0,
+    maxY: 0,
+  };
+  rectList.forEach((rect) => {
+    if (rect.x < p.minX) {
+      p.minX = rect.x;
+    }
+    if (rect.y < p.minY) {
+      p.minY = rect.y;
+    }
+    if (rect.x + rect.width > p.maxX) {
+      p.maxX = rect.x + rect.width;
+    }
+    if (rect.y + rect.height > p.maxY) {
+      p.maxY = rect.y + rect.height;
+    }
+  });
+  return {
+    width: p.maxX - p.minX,
+    height: p.maxY - p.minY,
+    x: p.minX,
+    y: p.minY,
+  };
+}
 
 export {
   getLength,
@@ -909,4 +1056,5 @@ export {
   getHandlePoint, // 计算操作杆（句柄）的坐标点
   calcResizedBoxInfo, // 计算形变后的盒子模型信息
   findParentByClass, // 根据类名寻找父元素
+  getWrapperBoxInfo,
 };

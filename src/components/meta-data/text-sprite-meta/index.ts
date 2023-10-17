@@ -1,14 +1,14 @@
-/* 矩形精灵 元数据 */
+/* 文本精灵 元数据 */
 
 import { ISpriteMeta, SPRITE_NAME } from "../types";
-import RectSprite from "../../sprite/rect-sprite/index.vue";
-export const rectSpriteMeta: ISpriteMeta = {
-  title: "矩形",
-  type: SPRITE_NAME.RECT,
+import TextSprite from "../../sprite/text-sprite/index.vue";
+export const textSpriteMeta: ISpriteMeta = {
+  title: "文本",
+  type: SPRITE_NAME.TEXT,
   createInitData() {
     return {
-      id: "RectSprite1",
-      type: SPRITE_NAME.RECT,
+      id: "TextSprite1",
+      type: SPRITE_NAME.TEXT,
       attrs: {
         // fill: "#fdc5bf"
         fill: "#eee",
@@ -21,7 +21,7 @@ export const rectSpriteMeta: ISpriteMeta = {
       },
     };
   },
-  component: RectSprite,
+  component: TextSprite,
   resizePoints: "all", // 'all' 代表有所有的形变点
   isShowRotateHandle: false, // 是否显示旋转操作杆
 };

@@ -1,31 +1,24 @@
 <template>
-  <line
-    :x1="0"
-    :y1="0"
-    :x2="0"
-    :y2="0"
+  <polyline
     stroke="#999"
-    stroke-width="2"
+    stroke-width="3"
+    fill="none"
     v-bind="bind"
   />
 </template>
 
 <script setup lang="ts">
 import { computed } from "vue";
-import { type ISprite } from "../../../components/meta-data/types";
+import { ICoordinate, type ISprite } from "../../../components/meta-data/types";
 const p = defineProps<{
   sprite: ISprite;
 }>();
 
 const bind = computed(() => {
   const { points, ...otherBind } = p.sprite.attrs;
-  const { x: x1, y: y1 } = points[0];
-  const { x: x2, y: y2 } = points[1];
+  const pointsStr = points.map((m: ICoordinate)=> `${m.x},${m.y}`).join(' ')
   return {
-    x1,
-    y1,
-    x2,
-    y2,
+    points: pointsStr,
     ...otherBind
   };
 });

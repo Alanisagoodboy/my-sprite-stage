@@ -38,7 +38,6 @@ import {
   calcResizedBoxInfo,
   findParentByClass,
   findParentListByClass,
-  calcResizedBoxInfoWithoutRotate,
 } from "../../utils/index";
 import { HANDLER } from "../../utils/types";
 
@@ -145,32 +144,50 @@ function onDotMousedown(dotInfo: IDot, e: MouseEvent) {
   e.preventDefault();
 
   // 1.按下去的一瞬间 缓存当前的盒子信息
-  const { width, height, x, y } = dragData.value;
+  const { width, height, x: left, y: top } = dragData.value;
+  // 2.计算原始中心点
+  const originCenter = {
+    x: left + width / 2,
+    y: top + height / 2,
+  };
 
-  const rect = { width, height, x, y };
+  // 3. 计算画布的信息
+  const editorRectInfo = svgRef.value.getBoundingClientRect();
 
-  
-  const downPointActiveList = JSON.parse(JSON.stringify(props.activeSpriteList))
+  // 4.精确计算句柄的坐标
+  const handleRectInfo = e.target!.getBoundingClientRect();
+
+  const handlePoint = {
+    x: handleRectInfo.left - editorRectInfo.left + handleRectInfo.width / 2,
+    y: handleRectInfo.top - editorRectInfo.top + handleRectInfo.height / 2,
+  };
+
+  console.log(handlePoint, "handlePoint");
+
+  // 获取对称点的坐标
+  const symmetricPoint = {
+    x: originCenter.x - (+handlePoint.x - originCenter.x),
+    y: originCenter.y - (+handlePoint.y - originCenter.y),
+  };
+
   // 5.计算中心点的坐标
 
   const onMousemove = (moveEv: MouseEvent) => {
-    const box = calcResizedBoxInfoWithoutRotate({
+    const box = calcResizedBoxInfo({
       handleType: dotInfo.side,
-      rect,
-      startEv: e,
-      moveEv: moveEv,
+      originCenter,
+      editorRectInfo,
+      handlePoint,
+      svgEl: svgRef.value,
+      startMouse: e,
+      moveMouse: moveEv,
+      originBoxInfo: dragData.value,
+      symmetricPoint,
     });
-    console.log(rect, 'rect');  
-    console.log(box, "sss");
 
-    // dragData.value = {
-    //   x: box.boundingBox.x,
-    //   y: box.boundingBox.y,
-    //   width: box.boundingBox.width,
-    //   height: box.boundingBox.height,
-    // };
+    dragData.value = box;
 
-    emit("resize", { ...box, downPointActiveList }, dotInfo.side);
+    emit("resize", { ...dragData.value }, dotInfo.side);
 
     // 吸附改动实时更新一次
     const _lastDragInfo = getActiveBoxInfo();
@@ -240,9 +257,7 @@ async function onMousedown(e: MouseEvent) {
   console.log(id, "id");
 
   const lastDragInfo = getActiveBoxInfo();
-  const downPointActiveList = JSON.parse(
-    JSON.stringify(props.activeSpriteList)
-  );
+  const downPointActiveList = JSON.parse(JSON.stringify(props.activeSpriteList))
   dragData.value = { ...lastDragInfo };
 
   console.log(dragData.value, "dragData.value");
