@@ -35,28 +35,27 @@
 <script setup lang="ts">
 import {
   getHandlePoint,
-  calcResizedBoxInfo,
   findParentByClass,
-  findParentListByClass,
-  calcResizedBoxInfoWithoutRotate,
+  calcResizeBoxInfoWithoutRotate,
+  calcMoveBoxInfoWithoutRotate,
+getSelectList,
 } from "../../utils/index";
 import { HANDLER } from "../../utils/types";
 
 import {
   computed,
   ref,
-  inject,
+  // inject,
   onMounted,
   onUnmounted,
-  type Ref,
+  // type Ref,
   nextTick,
-  watchEffect,
 } from "vue";
 import { IBoundingBox, ISprite } from "../meta-data/types";
 
 import { getWrapperBoxInfo } from "../../utils/index";
 
-const svgRef = inject("svgRef") as Ref<HTMLElement>;
+// const svgRef = inject("svgRef") as Ref<HTMLElement>;
 onMounted(() => {
   document.addEventListener("pointerdown", onMousedown, false);
 });
@@ -68,10 +67,6 @@ onUnmounted(() => {
 const dotSize = 6;
 
 const props = defineProps({
-  // activeIndex: {
-  //   type: [Number],
-  //   default: "0",
-  // },
   // 精灵列表
   spriteList: {
     type: Array,
@@ -131,6 +126,17 @@ const isShowRotate = computed(() => {
   return false;
 });
 
+// 计算外包裹拖拽盒子信息
+const dragData = computed(() => {
+  const points: IBoundingBox[] = props.activeSpriteList.map((m: ISprite) => {
+    return m.boundingBox;
+  });
+  const boundingBox = getWrapperBoxInfo(points);
+  return {
+    ...boundingBox,
+  };
+});
+
 // 坐标变换
 const transform = computed(() => {
   const centerX = dragData.value.x + dragData.value.width / 2;
@@ -149,32 +155,20 @@ function onDotMousedown(dotInfo: IDot, e: MouseEvent) {
 
   const rect = { width, height, x, y };
 
-  
-  const downPointActiveList = JSON.parse(JSON.stringify(props.activeSpriteList))
+  const downPointActiveList: ISprite[] = JSON.parse(
+    JSON.stringify(props.activeSpriteList)
+  );
   // 5.计算中心点的坐标
 
   const onMousemove = (moveEv: MouseEvent) => {
-    const box = calcResizedBoxInfoWithoutRotate({
+    const box = calcResizeBoxInfoWithoutRotate({
       handleType: dotInfo.side,
       rect,
+      needChangeRect: downPointActiveList.map((m) => m.boundingBox),
       startEv: e,
       moveEv: moveEv,
     });
-    console.log(rect, 'rect');  
-    console.log(box, "sss");
-
-    // dragData.value = {
-    //   x: box.boundingBox.x,
-    //   y: box.boundingBox.y,
-    //   width: box.boundingBox.width,
-    //   height: box.boundingBox.height,
-    // };
-
     emit("resize", { ...box, downPointActiveList }, dotInfo.side);
-
-    // 吸附改动实时更新一次
-    const _lastDragInfo = getActiveBoxInfo();
-    dragData.value = { ..._lastDragInfo };
   };
   const onMouseup = (_e: MouseEvent) => {
     document.removeEventListener("pointermove", onMousemove);
@@ -189,14 +183,6 @@ const dragRef = ref<HTMLElement | null>(null);
 // 是否按下鼠标
 const isMousedown = ref(false);
 
-// 拖拽数据
-const dragData = ref<IBoundingBox>({
-  x: 0,
-  y: 0,
-  width: 0,
-  height: 0,
-});
-
 function getActiveBoxInfo() {
   const points = props.activeSpriteList.map((m: ISprite) => {
     return m.boundingBox;
@@ -207,26 +193,10 @@ function getActiveBoxInfo() {
   };
 }
 
-/**
- * 监听实时的活跃数据变化
- * 看你有性能问题 todo
- *  */
-watchEffect(() => {
-  const boxInfo = getActiveBoxInfo();
-
-  const { x, y, width, height } = boxInfo;
-
-  dragData.value.x = x;
-  dragData.value.y = y;
-  dragData.value.width = width;
-  dragData.value.height = height;
-});
-/**
+/*
  * 鼠标按下事件
  */
 async function onMousedown(e: MouseEvent) {
-  console.log(e.target, "e.target");
-
   const spriteDom = findParentByClass(e.target, "sprite-container");
   console.log(spriteDom, "spriteDom");
 
@@ -234,40 +204,25 @@ async function onMousedown(e: MouseEvent) {
 
   // 查找 id 点击的精灵的id
   const id = spriteDom?.getAttribute("data-sprite-id");
-  emit("select", id);
+  const selectedList = getSelectList({id, activeList: props.activeSpriteList, allList: props.spriteList})
+  emit("select", selectedList);
   // 传出事件，再等待新的props
   await nextTick();
-  console.log(id, "id");
-
   const lastDragInfo = getActiveBoxInfo();
-  const downPointActiveList = JSON.parse(
+  const needChangeRect: IBoundingBox[] = JSON.parse(
     JSON.stringify(props.activeSpriteList)
-  );
-  dragData.value = { ...lastDragInfo };
-
-  console.log(dragData.value, "dragData.value");
+  ).map((m: ISprite) => m.boundingBox);
 
   isMousedown.value = true;
 
-  // 记录按下的位置
-  const downX = e.clientX;
-  const downY = e.clientY;
-
-  const onMousemove = (e: MouseEvent) => {
-    console.log("move");
-
-    const dx = e.clientX - downX;
-    const dy = e.clientY - downY;
-    const x = dx + +lastDragInfo.x;
-    const y = dy + +lastDragInfo.y;
-    dragData.value.x = x;
-    dragData.value.y = y;
-
-    emit("move", { ...dragData.value, dx, dy }, downPointActiveList);
-
-    // 吸附改动实时更新一次
-    const _lastDragInfo = getActiveBoxInfo();
-    dragData.value = { ..._lastDragInfo };
+  const onMousemove = (ev: MouseEvent) => {
+    const boxInfo = calcMoveBoxInfoWithoutRotate({
+      rect: lastDragInfo,
+      needChangeRect,
+      startEv: e,
+      moveEv: ev,
+    });
+    emit("move", { ...boxInfo });
   };
 
   const onMouseup = (_e: MouseEvent) => {
@@ -283,9 +238,11 @@ async function onMousedown(e: MouseEvent) {
 }
 
 function onRotateMousedown(e: MouseEvent) {
-  const el = dragRef.value!;
-  e.stopPropagation();
-  e.preventDefault();
+  console.log(e);
+
+  // const el = dragRef.value!;
+  // e.stopPropagation();
+  // e.preventDefault();
 
   // const startY = e.clientY;
   // const startX = e.clientX;
@@ -299,27 +256,27 @@ function onRotateMousedown(e: MouseEvent) {
   // const rotateDegreeBefore =
   //   Math.atan2(startY - centerY, startX - centerX) / (Math.PI / 180);
 
-  function onMousemove(e: MouseEvent) {
-    // const curX = e.clientX;
-    // const curY = e.clientY;
-    // Math.atan2(y,x) 返回从原点 (0,0) 到 (x,y) 点的线段与 x 轴正方向之间的平面角度 (弧度值)
+  // function onMousemove(e: MouseEvent) {
+  //   // const curX = e.clientX;
+  //   // const curY = e.clientY;
+  //   // Math.atan2(y,x) 返回从原点 (0,0) 到 (x,y) 点的线段与 x 轴正方向之间的平面角度 (弧度值)
 
-    // // 旋转后的角度
-    // const rotateDegreeAfter =
-    //   Math.atan2(curY - centerY, curX - centerX) / (Math.PI / 180);
-    // // 获取旋转的角度值， startRotate 为初始角度值
-    // const rotate = 0 + rotateDegreeAfter - rotateDegreeBefore;
+  //   // // 旋转后的角度
+  //   // const rotateDegreeAfter =
+  //   //   Math.atan2(curY - centerY, curX - centerX) / (Math.PI / 180);
+  //   // // 获取旋转的角度值， startRotate 为初始角度值
+  //   // const rotate = 0 + rotateDegreeAfter - rotateDegreeBefore;
 
-    // // dragData.value.rotate = rotate; // 角度
-    emit("rotate", { ...dragData.value });
-  }
+  //   // // dragData.value.rotate = rotate; // 角度
+  //   emit("rotate", { ...dragData.value });
+  // }
 
-  const onMouseup = (_e: MouseEvent) => {
-    document.removeEventListener("pointermove", onMousemove);
-    document.removeEventListener("pointerup", onMouseup);
-  };
-  document.addEventListener("pointermove", onMousemove);
-  document.addEventListener("pointerup", onMouseup);
+  // const onMouseup = (_e: MouseEvent) => {
+  //   document.removeEventListener("pointermove", onMousemove);
+  //   document.removeEventListener("pointerup", onMouseup);
+  // };
+  // document.addEventListener("pointermove", onMousemove);
+  // document.addEventListener("pointerup", onMouseup);
 }
 </script>
 

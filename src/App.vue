@@ -50,7 +50,7 @@
 
           <!-- 活跃的精灵容器：提供移动旋转缩放选中的能力 -->
           <ActiveSpritesContainer
-            v-if="activeSpriteList.length"
+            v-show="activeSpriteList.length"
             :activeSpriteList="activeSpriteList"
             :spriteList="spriteList"
             :registerSpriteMetaMap="registerSpriteMetaMap"
@@ -159,100 +159,31 @@ function addSpriteToStage({ name }: { name: SPRITE_NAME }) {
 /**
  * 更新精灵列表
  */
-function updateSpriteList(info: IBoxMove, downPointActiveList: ISprite[]) {
+function updateSpriteList(info: any) {
+  const { target } = info
   activeSpriteList.value.forEach((item: ISprite, index: number) => {
-    item.boundingBox.x = downPointActiveList[index].boundingBox.x + info.dx;
-    item.boundingBox.y = downPointActiveList[index].boundingBox.y + info.dy;
-    // item.boundingBox.width = info.width;
-    // item.boundingBox.height = info.height;
+    item.boundingBox.x = target[index].x;
+    item.boundingBox.y = target[index].y;
+    item.boundingBox.width = target[index].width;
+    item.boundingBox.height = target[index].height;
   });
 }
 
-function move(info: IBoxMove, downPointActiveList: ISprite[]) {
-  updateSpriteList(info, downPointActiveList);
-
-  // updateSpriteList(info);
-
-  // const { lines, dx, dy } = getAuxiliaryLine(
-  //   { distance: 0 },
-  //   { ...info },
-  //   inactiveList.value,
-  //   { width: 800, height: 400 },
-  //   {}
-  // );
-  // auxiliaryLineList.value = lines;
-
-  // const newInfo = handleAdsorb({
-  //   rect: { ...info },
-  //   dx,
-  //   dy,
-  //   mode: "move",
-  // });
-  // console.log(newInfo, "newInfo");
-
-  // updateSpriteList({ ...newInfo });
+function move(info: any) {
+  updateSpriteList(info);
 }
 
-function rotate(info: IBox) {
-  // updateSpriteList(info);
+function rotate(info: any) {
+  updateSpriteList(info);
 }
 
-function resize(info: any, handleType: HANDLER) {
-  // console.log(handleType);
-  const { offset, downPointActiveList, percent } = info;
-  // console.log("downPointActiveList", percent, downPointActiveList);
-
-  activeSpriteList.value.forEach((item: ISprite, index: number) => {
-    item.boundingBox.x = downPointActiveList[index].boundingBox.x +offset.x;
-    item.boundingBox.y = downPointActiveList[index].boundingBox.y +offset.y;
-    item.boundingBox.width =
-      downPointActiveList[index].boundingBox.width +offset.width;
-    item.boundingBox.height =
-      downPointActiveList[index].boundingBox.height +offset.height;
-    // item.boundingBox.x = downPointActiveList[index].boundingBox.x * percent.x;
-    // item.boundingBox.y = downPointActiveList[index].boundingBox.y * percent.y;
-    // item.boundingBox.width =
-    //   downPointActiveList[index].boundingBox.width * percent.width;
-    // item.boundingBox.height =
-    //   downPointActiveList[index].boundingBox.height * percent.height;
-  });
-
-  // const { lines /* , dx, dy  */ } = getAuxiliaryLine(
-  //   { distance: 0 },
-  //   { ...info },
-  //   inactiveList.value,
-  //   { width: 600, height: 800 },
-  //   {}
-  // );
-  // auxiliaryLineList.value = lines;
-
-  // // const newInfo = handleAdsorb({
-  // //   rect: { ...info },
-  // //   dx,
-  // //   dy,
-  // //   mode: "move",
-  // //   resizePos: handleType,
-  // // });
-  // // console.log(newInfo, "newInfo");
-
-  // updateSpriteList({ ...info });
+function resize(info: any) {
+  updateSpriteList(info);
 }
 
 // 选中精灵 时 根据id找到当前点击的精灵的信息
-function handleSelect(id: string) {
-  // 如果本身就在活跃的精灵列表中
-  const findInActive = activeSpriteList.value.find((f) => f.id === id);
-
-  console.log(findInActive, "findInActive");
-
-  if (findInActive) return;
-  // 否则在全局精灵列表中寻找
-  const findInAll = spriteList.find((f) => f.id === id);
-  console.log(findInAll, "findInAll");
-
-  if (findInAll) {
-    activeSpriteList.value = [findInAll];
-  }
+function handleSelect(selectList: ISprite[]) {
+  activeSpriteList.value = selectList
 }
 
 // 锚点移动时 待优化 todo

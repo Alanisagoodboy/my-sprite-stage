@@ -250,14 +250,16 @@ function getPoint(rect: IBox, center: IPoint, position: HANDLER): IPoint {
 /**
  * 计算形变，不考虑旋转
  */
-export function calcResizedBoxInfoWithoutRotate({
+export function calcResizeBoxInfoWithoutRotate({
   handleType,
   rect,
+  needChangeRect,
   startEv,
   moveEv,
 }: {
   handleType: HANDLER;
   rect: IBoundingBox;
+  needChangeRect: IBoundingBox[];
   startEv: MouseEvent;
   moveEv: MouseEvent;
 }) {
@@ -321,13 +323,85 @@ export function calcResizedBoxInfoWithoutRotate({
       width: boxInfo.width - rect.width,
       height: boxInfo.height - rect.height,
     },
-    percent: {
-      x: boxInfo.x / rect.x,
-      y: boxInfo.y / rect.y,
-      width: boxInfo.width / rect.width,
-      height: boxInfo.height / rect.height,
-    },
+    target: needChangeRect.map((m) => {
+      return {
+        x: ((m.x - rect.x) / rect.width) * boxInfo.width + boxInfo.x,
+        y: ((m.y - rect.y) / rect.height) * boxInfo.height + boxInfo.y,
+        width: (m.width / rect.width) * boxInfo.width,
+        height: (m.height / rect.height) * boxInfo.height,
+      };
+    }),
   };
+}
+
+/**
+ *
+ * @desc 计算移动，不考虑旋转
+ * @param param0 外包裹矩形
+ * @param needChangeRect 需要改变的矩形信息
+ * @param startEv 鼠标按下时候的事件
+ * @param moveEv 鼠标移动时候的事件
+ */
+export function calcMoveBoxInfoWithoutRotate({
+  rect,
+  needChangeRect,
+  startEv,
+  moveEv,
+}: {
+  rect: IBoundingBox;
+  needChangeRect: IBoundingBox[];
+  startEv: MouseEvent;
+  moveEv: MouseEvent;
+}) {
+  const [dx, dy] = [
+    moveEv.clientX - startEv.clientX,
+    moveEv.clientY - startEv.clientY,
+  ];
+  return {
+    // 盒子信息
+    boundingBox: {
+      x: rect.x + dx,
+      y: rect.x + dy,
+      width: rect.width,
+      height: rect.height,
+    },
+    // 偏移量
+    offset: {
+      x: dx,
+      y: dy,
+      width: 0,
+      height: 0,
+    },
+    // 需要改变的矩形目标数据
+    target: needChangeRect.map((m) => {
+      return {
+        x: m.x + dx,
+        y: m.y + dy,
+        width: m.width,
+        height: m.height,
+      };
+    }),
+  };
+}
+
+/**
+ * 获取选中的精灵列表
+ * @param id 点击精灵的id
+ * @param activeList 当前已经选中的精灵列表数据
+ * @param allList 所有选中的精灵列表数据
+ * @returns 新的选中的精灵列表
+ */
+export function getSelectList({ id, activeList, allList }) {
+  // 如果本身就在活跃的精灵列表中，返回原有的精灵列表
+  const findInActive = activeList.find((f) => f.id === id);
+  if (findInActive) return activeList
+  // 否则在全局精灵列表中查找
+  const findInAll = allList.find((f) => f.id === id);
+  // 如果找到了，将找到的这一个设置为新的选中的精灵
+  if (findInAll) {
+    return [findInAll]
+  }
+  return []
 }
 
 function getLength(x: number, y: number): number {
