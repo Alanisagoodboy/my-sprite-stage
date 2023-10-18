@@ -1,9 +1,5 @@
 <template>
   <line
-    :x1="0"
-    :y1="0"
-    :x2="0"
-    :y2="0"
     stroke="#999"
     stroke-width="2"
     v-bind="bind"
@@ -13,20 +9,21 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { type ISprite } from "../../../components/meta-data/types";
-const p = defineProps<{
+const props = defineProps<{
   sprite: ISprite;
 }>();
 
 const bind = computed(() => {
-  const { points, ...otherBind } = p.sprite.attrs;
-  const { x: x1, y: y1 } = points[0];
-  const { x: x2, y: y2 } = points[1];
+  const { boundingBox, attrs } = props.sprite
+  const {x, y, width, height} = boundingBox
+  const { points } = attrs;
+  const { x: x1_rate, y: y1_rate } = points[0];
+  const { x: x2_rate, y: y2_rate } = points[1];
   return {
-    x1,
-    y1,
-    x2,
-    y2,
-    ...otherBind
+    x1: x1_rate * width,
+    y1: y1_rate * height,
+    x2: x2_rate * width,
+    y2: y2_rate * height,
   };
 });
 </script>

@@ -1,7 +1,7 @@
 <template>
   <g>
     <circle
-      r="3"
+      r="10"
       :cx="item.x"
       :cy="item.y"
       v-for="(item, index) of anchorPoints"
@@ -15,10 +15,11 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
-import { ISprite } from "../../meta-data/types";
+import { ICoordinate, ISprite } from "../../meta-data/types";
 import { default_sprite_data } from "../../meta-data";
 
 const p = defineProps<{
+  spriteList: ISprite[];
   sprite: ISprite;
 }>();
 
@@ -28,24 +29,21 @@ const emits = defineEmits([
   "anchor-point-move-end",
 ]);
 
-const boxInfo = computed(() => {
-  const { width, height, x, y } = p.sprite.boundingBox;
-
-  return {
-    x,
-    y,
-    width,
-    height,
-  };
-});
-
 // 渲染的锚点信息
 const anchorPoints = computed(() => {
   const sprite = p.sprite;
+  const { width, height } = sprite.boundingBox;
   const metaData = default_sprite_data[sprite.type];
   const { anchors } = metaData;
   if (anchors) {
-    return anchors.getPoints({ sprite });
+    const ratePoint = anchors.getPoints({ sprite });
+    const point = ratePoint.map((m: ICoordinate) => {
+      return {
+        x: m.x * width,
+        y: m.y * height,
+      };
+    });
+    return point;
   }
   return [];
 });
@@ -100,15 +98,17 @@ let recordPointInfo = {
 
 // 按下
 function handleDown(e: MouseEvent, index: number) {
+  console.log(222);
+
+  
   // 阻止冒泡 防止触发移动事件
   e.stopPropagation();
   // 阻止默认拖拽等事件，防止无法触发up事件
   e.preventDefault();
+  console.log(p.sprite.id, "p.sprite.id");
+
   emits("select", p.sprite.id);
-
-  // 记录此时的坐标信息
-  console.log("--");
-
+  const {x, y, width, height} = p.sprite.boundingBox
   // 记录操作的是哪个点
   recordPointInfo.setIndex(index);
 
@@ -119,10 +119,10 @@ function handleDown(e: MouseEvent, index: number) {
     y: p.sprite.boundingBox.y,
   };
 
-  // 缓存点的坐标系初始位置
+  // 缓存点的坐标系初始位置，转化为坐标轴上的点
   recordPointInfo.setInitPoint({
-    x: anchorPoints.value[index].x,
-    y: anchorPoints.value[index].y,
+    x: anchorPoints.value[index].x * width + x,
+    y: anchorPoints.value[index].y * height + y,
   });
 
   // 记录鼠标按下视口坐标系的位置
@@ -143,6 +143,11 @@ function handleMove(e: MouseEvent) {
 
   // 锚点移动事件 抛给父组件
   recordPointInfo.setTargetAnchorPoints(index, { x, y });
+
+  const points = {
+
+  }
+
   emits("anchor-point-move", {
     id: p.sprite.id,
     x,

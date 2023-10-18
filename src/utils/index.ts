@@ -337,50 +337,81 @@ export function calcResizeBoxInfoWithoutRotate({
 /**
  *
  * @desc 计算移动，不考虑旋转
- * @param param0 外包裹矩形
+ * @param rect 外包裹矩形
  * @param needChangeRect 需要改变的矩形信息
+ * @param staticRectList 静止不动的矩形信息
+ * @param stageSize 舞台尺寸
  * @param startEv 鼠标按下时候的事件
  * @param moveEv 鼠标移动时候的事件
  */
 export function calcMoveBoxInfoWithoutRotate({
   rect,
   needChangeRect,
+  staticRectList,
+  stageSize,
   startEv,
   moveEv,
 }: {
   rect: IBoundingBox;
   needChangeRect: IBoundingBox[];
+  staticRectList: IBoundingBox[];
+  stageSize: ISize;
   startEv: MouseEvent;
   moveEv: MouseEvent;
 }) {
-  const [dx, dy] = [
+  const [moveX, moveY] = [
     moveEv.clientX - startEv.clientX,
     moveEv.clientY - startEv.clientY,
   ];
+
+  // 盒子信息
+  const boundingBox = {
+    x: rect.x + moveX,
+    y: rect.x + moveY,
+    width: rect.width,
+    height: rect.height,
+  };
+
+  const {
+    lines,
+    dx: fixDisX,
+    dy: fixDisY,
+  } = getAuxLine({
+    rect: boundingBox,
+    inactiveRectList: staticRectList,
+    stageSize,
+  });
+
+  boundingBox.x += fixDisX;
+  boundingBox.y += fixDisY;
+
+  // 修正偏移量
+  const dx = moveX + fixDisX;
+  const dy = moveY + fixDisY;
+
+  // 最终偏移量
+  const offset = {
+    x: dx,
+    y: dy,
+    width: 0,
+    height: 0,
+  };
+
+  // 需要改变的矩形目标数据
+  const target = needChangeRect.map((m) => {
+    return {
+      x: m.x + dx,
+      y: m.y + dy,
+      width: m.width,
+      height: m.height,
+    };
+  });
+
   return {
-    // 盒子信息
-    boundingBox: {
-      x: rect.x + dx,
-      y: rect.x + dy,
-      width: rect.width,
-      height: rect.height,
-    },
-    // 偏移量
-    offset: {
-      x: dx,
-      y: dy,
-      width: 0,
-      height: 0,
-    },
-    // 需要改变的矩形目标数据
-    target: needChangeRect.map((m) => {
-      return {
-        x: m.x + dx,
-        y: m.y + dy,
-        width: m.width,
-        height: m.height,
-      };
-    }),
+    boundingBox, // 盒子信息
+    offset, // 偏移量
+    target, // 需要改变的矩形目标数据
+    lines, // 辅助线
   };
 }
 
@@ -392,16 +423,22 @@ export function calcMoveBoxInfoWithoutRotate({
  * @returns 新的选中的精灵列表
  */
 export function getSelectList({ id, activeList, allList }) {
+  let target = [...activeList];
   // 如果本身就在活跃的精灵列表中，返回原有的精灵列表
   const findInActive = activeList.find((f) => f.id === id);
-  if (findInActive) return activeList
-  // 否则在全局精灵列表中查找
-  const findInAll = allList.find((f) => f.id === id);
-  // 如果找到了，将找到的这一个设置为新的选中的精灵
-  if (findInAll) {
-    return [findInAll]
+  if (!findInActive) {
+    // 否则在全局精灵列表中查找
+    const findInAll = allList.find((f) => f.id === id);
+    // 如果找到了，将找到的这一个设置为新的选中的精灵
+    if (findInAll) {
+      target = [findInAll];
+    }
   }
-  return []
+
+  return {
+    boundingBox: getWrapperBoxInfo(target.map((m) => m.boundingBox)),
+    target,
+  };
 }
 
 function getLength(x: number, y: number): number {
@@ -834,6 +871,114 @@ export function findParentListByClass(_dom: any, _className: string): any {
  * Math.atan2(y2-y1,x2-x1)*180/Math.PI
  */
 
+// 判断接近
+function closeTo(a: number, b: number, d = 5): boolean {
+  return Math.abs(a - b) < d;
+}
+/**
+ * 计算元素之间靠近时的对其辅助线，以及吸附的修正距离
+ * @param rect 选中的矩形区域
+ * @param inactiveRectList 未选中的元素bounding列表
+ * @param stageSize 舞台/画布大小
+ * @returns 辅助线数组和吸附定位
+ */
+export const getAuxLine = ({
+  rect,
+  inactiveRectList,
+  stageSize = { width: 0, height: 0 },
+}) => {
+  // 正在拖拽中的矩形的各个边信息
+
+  const rectLeft = rect.x;
+  const rectRight = rect.x + rect.width;
+  const rectTop = rect.y;
+  const rectBottom = rect.y + rect.height;
+  const rectCenterX = (rectLeft + rectRight) / 2;
+  const rectCenterY = (rectTop + rectBottom) / 2;
+
+  const dis = 5;
+
+  // 增加一个和舞台同样大小的虚拟元素，用来和舞台对齐
+  const rectList = [...inactiveRectList, { x: 0, y: 0, ...stageSize }];
+
+  let dx = 0;
+  let dy = 0;
+  const sourcePosSpaceMap: Record<string, any> = {};
+  for (const rect of rectList) {
+    // 矩形的各个边信息
+    const left = rect.x;
+    const right = rect.x + rect.width;
+    const top = rect.y;
+    const bottom = rect.y + rect.height;
+    const centerX = (left + right) / 2;
+    const centerY = (top + bottom) / 2;
+
+    // x和y方向各自取开始、中间、结束三个位置，枚举出共18种情况
+    const array = [
+      { pos: "x", sourcePos: "left", source: rectLeft, target: left },
+      { pos: "x", sourcePos: "left", source: rectLeft, target: centerX },
+      { pos: "x", sourcePos: "left", source: rectLeft, target: right },
+
+      { pos: "x", sourcePos: "centerX", source: rectCenterX, target: left },
+      { pos: "x", sourcePos: "centerX", source: rectCenterX, target: centerX },
+      { pos: "x", sourcePos: "centerX", source: rectCenterX, target: right },
+
+      { pos: "x", sourcePos: "right", source: rectRight, target: left },
+      { pos: "x", sourcePos: "right", source: rectRight, target: centerX },
+      { pos: "x", sourcePos: "right", source: rectRight, target: right },
+
+      { pos: "y", sourcePos: "top", source: rectTop, target: top },
+      { pos: "y", sourcePos: "top", source: rectTop, target: centerY },
+      { pos: "y", sourcePos: "top", source: rectTop, target: bottom },
+
+      { pos: "y", sourcePos: "centerY", source: rectCenterY, target: top },
+      { pos: "y", sourcePos: "centerY", source: rectCenterY, target: centerY },
+      { pos: "y", sourcePos: "centerY", source: rectCenterY, target: bottom },
+
+      { pos: "y", sourcePos: "bottom", source: rectBottom, target: top },
+      { pos: "y", sourcePos: "bottom", source: rectBottom, target: centerY },
+      { pos: "y", sourcePos: "bottom", source: rectBottom, target: bottom },
+    ];
+
+    const minX = Math.min(left, rectLeft);
+    const maxX = Math.max(right, rectRight);
+    const minY = Math.min(top, rectTop);
+    const maxY = Math.max(bottom, rectBottom);
+
+    // 对正在拖拽的矩形来说，每个方向上选出一个最近的辅助线即可
+    array.forEach((e: any) => {
+      if (closeTo(e.source, e.target)) {
+        const space = e.target - e.source;
+        // 选出距离更小的
+        if (
+          !sourcePosSpaceMap[e.sourcePos] ||
+          Math.abs(sourcePosSpaceMap[e.sourcePos].space) < Math.abs(space)
+        ) {
+          if (e.pos === "x") {
+            dx = space;
+          } else {
+            dy = space;
+          }
+          sourcePosSpaceMap[e.sourcePos] = {
+            space,
+            line: {
+              x1: e.pos === "x" ? e.target : minX,
+              x2: e.pos === "x" ? e.target : maxX,
+              y1: e.pos === "y" ? e.target : minY,
+              y2: e.pos === "y" ? e.target : maxY,
+            },
+          };
+        }
+      }
+    });
+  }
+  return {
+    lines: Object.values(sourcePosSpaceMap).map((e) => e.line),
+    dx,
+    dy,
+  };
+};
+
 /**
  * 计算元素之间靠近时的对其辅助线，以及吸附的修正距离
  * @param rect 选中矩形区域
@@ -945,7 +1090,7 @@ export const getAuxiliaryLine = (
   };
 };
 
-// 处理吸附的修正距离作用与矩形上
+// 处理吸附的修正距离作用于矩形上
 export const handleAdsorb = ({
   // 正在编辑的矩形
   rect,
@@ -1091,32 +1236,44 @@ export const roundingUnitize = (n: number, unit: number, adsorbDis = 4) => {
  * @returns
  */
 function getWrapperBoxInfo(rectList: IBoundingBox[]) {
+  console.log(rectList, "rectList");
+
   const p = {
-    minX: Infinity,
-    minY: Infinity,
+    minX: 1000000,
+    minY: 1000000,
     maxX: 0,
     maxY: 0,
   };
-  rectList.forEach((rect) => {
-    if (rect.x < p.minX) {
-      p.minX = rect.x;
-    }
-    if (rect.y < p.minY) {
-      p.minY = rect.y;
-    }
-    if (rect.x + rect.width > p.maxX) {
-      p.maxX = rect.x + rect.width;
-    }
-    if (rect.y + rect.height > p.maxY) {
-      p.maxY = rect.y + rect.height;
-    }
-  });
-  return {
-    width: p.maxX - p.minX,
-    height: p.maxY - p.minY,
-    x: p.minX,
-    y: p.minY,
+
+  const boxInfo = {
+    x: 0,
+    y: 0,
+    width: 0,
+    height: 0,
   };
+
+  if (rectList.length >= 1) {
+    rectList.forEach((rect) => {
+      if (rect.x < p.minX) {
+        p.minX = rect.x;
+      }
+      if (rect.y < p.minY) {
+        p.minY = rect.y;
+      }
+      if (rect.x + rect.width > p.maxX) {
+        p.maxX = rect.x + rect.width;
+      }
+      if (rect.y + rect.height > p.maxY) {
+        p.maxY = rect.y + rect.height;
+      }
+    });
+    boxInfo.x = p.minX;
+    boxInfo.y = p.minY;
+    boxInfo.width = p.maxX - p.minX;
+    boxInfo.height = p.maxY - p.minY;
+  }
+
+  return boxInfo;
 }
 
 export {

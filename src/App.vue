@@ -16,9 +16,13 @@
     <div class="content">
       <div class="left"></div>
       <div class="center">
-        <Stage width="800" height="400">
+        <Stage :width="stage.width" :height="stage.height">
           <!-- 网格线 -->
-          <GridLine :width="800" :height="400" :spacing="50"></GridLine>
+          <GridLine
+            :width="stage.width"
+            :height="stage.height"
+            :spacing="50"
+          ></GridLine>
 
           <!-- 精灵容器 -->
           <SpriteContainer
@@ -33,35 +37,32 @@
 
             <!-- 在精灵容器中加入锚点渲染器 -->
             <AnchorPoints
+              :spriteList="spriteList"
               :sprite="sprite"
-              @select="handleSelect"
+              @select="select"
               @anchor-point-move="handleAnchorPointMove"
             />
           </SpriteContainer>
 
           <!-- 辅助线 -->
-          <!-- <line
-          v-for="line of auxiliaryLineList"
-          :key="JSON.stringify(line)"
-          v-bind="line"
-          stroke="#0067ed"
-          strokeDasharray="4 4"
-        ></line> -->
+          <AuxiliaryLine :lineList="auxiliaryLineList" />
 
           <!-- 活跃的精灵容器：提供移动旋转缩放选中的能力 -->
           <ActiveSpritesContainer
             v-show="activeSpriteList.length"
+            :stageSize="{ width: stage.width, height: stage.height }"
             :activeSpriteList="activeSpriteList"
             :spriteList="spriteList"
             :registerSpriteMetaMap="registerSpriteMetaMap"
             @move="move"
             @rotate="rotate"
             @resize="resize"
-            @select="handleSelect"
-          ></ActiveSpritesContainer>
+            @select="select"
+          />
 
           <!-- 选框 -->
           <selectArea
+            v-if="false"
             :spriteList="spriteList"
             @select-area-move="handleSelectAreaMove"
           />
@@ -78,6 +79,7 @@ import ActiveSpritesContainer from "./components/sprite/active-sprites-container
 import AnchorPoints from "./components/stage/anchor-point/anchor-points.vue";
 import GridLine from "./components/stage/grid-line.vue";
 import selectArea from "./components/stage/select-area.vue";
+import AuxiliaryLine from "./components/stage/auxiliary-line.vue";
 
 import { ref, computed, shallowRef, provide, reactive } from "vue";
 
@@ -98,6 +100,12 @@ const componentList = Object.values(default_sprite_data).map((m) => {
     title: m.title,
   };
 });
+
+// 舞台信息
+const stage = reactive({
+  width: 800,
+  height: 400,
+});
 // 精灵列表
 const spriteList = reactive<ISprite[]>([]);
 // 活跃（被选中）状态的精灵列表
@@ -108,17 +116,6 @@ const registerSpriteMetaMap: any = shallowRef({});
 
 // 对齐线
 const auxiliaryLineList = ref<any[]>([]);
-
-// 不活跃的数据
-const inactiveList = computed(() => {
-  return spriteList
-    .filter((item) => activeSpriteList.value.find((f) => f.id !== item.id))
-    .map((m) => {
-      return {
-        ...m.boundingBox,
-      };
-    });
-});
 
 /**
  *
@@ -160,13 +157,14 @@ function addSpriteToStage({ name }: { name: SPRITE_NAME }) {
  * 更新精灵列表
  */
 function updateSpriteList(info: any) {
-  const { target } = info
+  const { target, lines = [] } = info;
   activeSpriteList.value.forEach((item: ISprite, index: number) => {
     item.boundingBox.x = target[index].x;
     item.boundingBox.y = target[index].y;
     item.boundingBox.width = target[index].width;
     item.boundingBox.height = target[index].height;
   });
+  auxiliaryLineList.value = lines;
 }
 
 function move(info: any) {
@@ -182,8 +180,12 @@ function resize(info: any) {
 }
 
 // 选中精灵 时 根据id找到当前点击的精灵的信息
-function handleSelect(selectList: ISprite[]) {
-  activeSpriteList.value = selectList
+function select(info: any) {
+  const { target } = info;
+  console.log(target, "target");
+  if (target) {
+    activeSpriteList.value = target;
+  }
 }
 
 // 锚点移动时 待优化 todo
@@ -207,18 +209,18 @@ function handleAnchorPointMove(info: any) {
     sprite.boundingBox.height = boxInfo.height;
     sprite.boundingBox.width = boxInfo.width;
 
-    const ltDiff = {
-      x: boxInfo.x - info.ltInfoInStage.x,
-      y: boxInfo.y - info.ltInfoInStage.y,
-    };
+    // const ltDiff = {
+    //   x: boxInfo.x - info.ltInfoInStage.x,
+    //   y: boxInfo.y - info.ltInfoInStage.y,
+    // };
 
-    const points = info.targetAnchorPoints.map((m) => {
-      return {
-        x: m.x - ltDiff.x,
-        y: m.y - ltDiff.y,
-      };
-    });
-    sprite.attrs.points = points;
+    // const points = info.targetAnchorPoints.map((m) => {
+    //   return {
+    //     x: m.x - ltDiff.x,
+    //     y: m.y - ltDiff.y,
+    //   };
+    // });
+    // sprite.attrs.points = points;
   }
 
   // 如果是圆角矩形

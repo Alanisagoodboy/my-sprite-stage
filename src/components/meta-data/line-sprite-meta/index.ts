@@ -11,14 +11,16 @@ export const lineSpriteMeta: ISpriteMeta = {
       attrs: {
         stroke: "#84db92",
         strokeWidth: 3,
+        
+        // points 的单位是相对单位,相对宽高的比率
         points: [
           {
             x: 0,
             y: 0,
           },
           {
-            x: 30,
-            y: 40,
+            x: 1,
+            y: 1,
           },
         ],
       },

@@ -38,7 +38,7 @@ import {
   findParentByClass,
   calcResizeBoxInfoWithoutRotate,
   calcMoveBoxInfoWithoutRotate,
-getSelectList,
+  getSelectList,
 } from "../../utils/index";
 import { HANDLER } from "../../utils/types";
 
@@ -51,7 +51,7 @@ import {
   // type Ref,
   nextTick,
 } from "vue";
-import { IBoundingBox, ISprite } from "../meta-data/types";
+import { IBoundingBox, ISize, ISprite } from "../meta-data/types";
 
 import { getWrapperBoxInfo } from "../../utils/index";
 
@@ -66,23 +66,16 @@ onUnmounted(() => {
 
 const dotSize = 6;
 
-const props = defineProps({
+const props = defineProps<{
+  // 舞台尺寸
+  stageSize: ISize,
   // 精灵列表
-  spriteList: {
-    type: Array,
-    default: () => [],
-  },
+  spriteList: ISprite[];
   // 活跃的精灵列表
-  activeSpriteList: {
-    type: Array,
-    default: () => [],
-  },
+  activeSpriteList: ISprite[];
   // 已经注册的精灵元数据map
-  registerSpriteMetaMap: {
-    type: Object,
-    default: () => ({ a: 1 }),
-  },
-});
+  registerSpriteMetaMap: Record<string, any>;
+}>();
 const emit = defineEmits(["move", "resize", "rotate", "select"]);
 
 type IDot = {
@@ -198,14 +191,16 @@ function getActiveBoxInfo() {
  */
 async function onMousedown(e: MouseEvent) {
   const spriteDom = findParentByClass(e.target, "sprite-container");
-  console.log(spriteDom, "spriteDom");
-
   if (!spriteDom) return;
 
   // 查找 id 点击的精灵的id
   const id = spriteDom?.getAttribute("data-sprite-id");
-  const selectedList = getSelectList({id, activeList: props.activeSpriteList, allList: props.spriteList})
-  emit("select", selectedList);
+  const selectBox = getSelectList({
+    id,
+    activeList: props.activeSpriteList,
+    allList: props.spriteList,
+  });
+  emit("select", { ...selectBox });
   // 传出事件，再等待新的props
   await nextTick();
   const lastDragInfo = getActiveBoxInfo();
@@ -213,12 +208,19 @@ async function onMousedown(e: MouseEvent) {
     JSON.stringify(props.activeSpriteList)
   ).map((m: ISprite) => m.boundingBox);
 
+  const staticRectList = props.spriteList
+    .filter((f) => {
+      return props.activeSpriteList.find((item) => item.id !== f.id);
+    })
+    .map((m) => m.boundingBox);
   isMousedown.value = true;
 
   const onMousemove = (ev: MouseEvent) => {
     const boxInfo = calcMoveBoxInfoWithoutRotate({
       rect: lastDragInfo,
+      stageSize: props.stageSize,
       needChangeRect,
+      staticRectList,
       startEv: e,
       moveEv: ev,
     });
