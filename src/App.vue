@@ -190,49 +190,19 @@ function select(info: any) {
 
 // 锚点移动时 待优化 todo
 function handleAnchorPointMove(info: any) {
-  const sprite = spriteList.find((f) => f.id === info.id);
-  if (!sprite) return;
-  // 如果是线段锚点
-  if ([SPRITE_NAME.LINE, SPRITE_NAME.POLYLINE].includes(sprite.type)) {
-    const preNode = info.targetAnchorPoints.map(
-      (m: { x: number; y: number }) => {
-        return {
-          x: m.x + info.ltInfoInStage.x,
-          y: m.y + info.ltInfoInStage.y,
-        };
-      }
-    );
-    const boxInfo = getBoxInfoByPoint(preNode);
-
-    sprite.boundingBox.x = boxInfo.x;
-    sprite.boundingBox.y = boxInfo.y;
-    sprite.boundingBox.height = boxInfo.height;
-    sprite.boundingBox.width = boxInfo.width;
-
-    // const ltDiff = {
-    //   x: boxInfo.x - info.ltInfoInStage.x,
-    //   y: boxInfo.y - info.ltInfoInStage.y,
-    // };
-
-    // const points = info.targetAnchorPoints.map((m) => {
-    //   return {
-    //     x: m.x - ltDiff.x,
-    //     y: m.y - ltDiff.y,
-    //   };
-    // });
-    // sprite.attrs.points = points;
-  }
+  const find = spriteList.find((f) => f.id === info.id);
+  Object.assign(find, info.sprite);
 
   // 如果是圆角矩形
-  if (sprite.type === SPRITE_NAME.ROUND_RECT) {
-    // 根据锚点最新位置计算圆角大小
-    const { boundingBox } = sprite;
-    const { width, height } = boundingBox;
-    const len = Math.min(width, height);
-    const x = Math.max(0, Math.min(len / 2, info.x));
-    const borderRadius = (100 * x) / len;
-    sprite.attrs.borderRadius = borderRadius;
-  }
+  // if (sprite.type === SPRITE_NAME.ROUND_RECT) {
+  //   // 根据锚点最新位置计算圆角大小
+  //   const { boundingBox } = sprite;
+  //   const { width, height } = boundingBox;
+  //   const len = Math.min(width, height);
+  //   const x = Math.max(0, Math.min(len / 2, info.x));
+  //   const borderRadius = (100 * x) / len;
+  //   sprite.attrs.borderRadius = borderRadius;
+  // }
 }
 
 // 锚点移动结束

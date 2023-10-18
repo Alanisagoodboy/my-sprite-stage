@@ -17,6 +17,7 @@
 import { computed } from "vue";
 import { ICoordinate, ISprite } from "../../meta-data/types";
 import { default_sprite_data } from "../../meta-data";
+import { getWrapperBoxByPoint } from "../../../utils/index.ts";
 
 const p = defineProps<{
   spriteList: ISprite[];
@@ -100,7 +101,6 @@ let recordPointInfo = {
 function handleDown(e: MouseEvent, index: number) {
   console.log(222);
 
-  
   // 阻止冒泡 防止触发移动事件
   e.stopPropagation();
   // 阻止默认拖拽等事件，防止无法触发up事件
@@ -108,21 +108,29 @@ function handleDown(e: MouseEvent, index: number) {
   console.log(p.sprite.id, "p.sprite.id");
 
   emits("select", p.sprite.id);
-  const {x, y, width, height} = p.sprite.boundingBox
+  const { points } = JSON.parse(JSON.stringify(p.sprite.attrs));
+  const { x, y, width, height } = p.sprite.boundingBox;
   // 记录操作的是哪个点
   recordPointInfo.setIndex(index);
 
-  recordPointInfo.targetAnchorPoints = [...anchorPoints.value];
+  // recordPointInfo.targetAnchorPoints = [...anchorPoints.value];
 
   recordPointInfo.ltInfoInStage = {
-    x: p.sprite.boundingBox.x,
-    y: p.sprite.boundingBox.y,
+    x,
+    y,
+    width,
+    height,
   };
-
   // 缓存点的坐标系初始位置，转化为坐标轴上的点
+  recordPointInfo.targetAnchorPoints = points.map((m) => {
+    return {
+      x: m.x * width + x,
+      y: m.y * height + y,
+    };
+  });
+  // // 缓存点的坐标系初始位置，转化为坐标轴上的点
   recordPointInfo.setInitPoint({
-    x: anchorPoints.value[index].x * width + x,
-    y: anchorPoints.value[index].y * height + y,
+    ...recordPointInfo.targetAnchorPoints[index],
   });
 
   // 记录鼠标按下视口坐标系的位置
@@ -138,25 +146,34 @@ function handleDown(e: MouseEvent, index: number) {
 // 移动
 function handleMove(e: MouseEvent) {
   const { initPoint, downPoint, index } = recordPointInfo;
+  console.log(downPoint, "downPoint", initPoint);
+
   const x = e.clientX - downPoint.x + +initPoint.x;
   const y = e.clientY - downPoint.y + +initPoint.y;
 
   // 锚点移动事件 抛给父组件
   recordPointInfo.setTargetAnchorPoints(index, { x, y });
 
-  const points = {
+  const boundingBox = getWrapperBoxByPoint(recordPointInfo.targetAnchorPoints);
 
-  }
+  const points = recordPointInfo.targetAnchorPoints.map((m) => {
+    return {
+      x: (m.x - boundingBox.x) / boundingBox.width,
+      y: (m.y - boundingBox.y) / boundingBox.height,
+    };
+  });
 
+  const _sprite = JSON.parse(JSON.stringify(p.sprite));
   emits("anchor-point-move", {
     id: p.sprite.id,
-    x,
-    y,
-    index,
-    initPoint,
-    ltInfoInStage: { ...recordPointInfo.ltInfoInStage },
-    targetAnchorPoints: [...recordPointInfo.targetAnchorPoints],
-    anchorPoints: [...anchorPoints.value],
+    sprite: {
+      ..._sprite,
+      boundingBox,
+      attrs: {
+        ..._sprite.attrs,
+        points,
+      },
+    },
   });
 }
 

@@ -1231,7 +1231,7 @@ export const roundingUnitize = (n: number, unit: number, adsorbDis = 4) => {
 };
 
 /**
- * @desc 获取多个坐标点包裹的盒子信息
+ * @desc 获取多个矩形包裹的盒子信息
  * @param rectList 矩形块坐标数组
  * @returns
  */
@@ -1239,8 +1239,8 @@ function getWrapperBoxInfo(rectList: IBoundingBox[]) {
   console.log(rectList, "rectList");
 
   const p = {
-    minX: 1000000,
-    minY: 1000000,
+    minX: 10000000,
+    minY: 10000000,
     maxX: 0,
     maxY: 0,
   };
@@ -1274,6 +1274,21 @@ function getWrapperBoxInfo(rectList: IBoundingBox[]) {
   }
 
   return boxInfo;
+}
+/**
+ * 
+ * @param pointList 多个坐标点包含的矩形
+ * @returns 
+ */
+export function getWrapperBoxByPoint(pointList: ICoordinate[]) {
+  const [minX, minY, maxX, maxY] = [Math.min(...pointList.map(m=>m.x)),Math.min(...pointList.map(m=>m.y)),Math.max(...pointList.map(m=>m.x)),Math.max(...pointList.map(m=>m.y))]
+  
+  return {
+    x: minX,
+    y: minY,
+    width: maxX - minX,
+    height: maxY - minY
+  }
 }
 
 export {
