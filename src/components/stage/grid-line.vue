@@ -25,12 +25,12 @@ const { xLines, yLines } = getLines(
   props.spacing || 50
 );
 const lines = [...xLines, ...yLines];
-const path = lines.map((line: Line) => getPath(line)).join(" ");
+const path = lines.map((line: any) => getPath(line)).join(" ");
 
 d.value = path
 
 // 把网格线转化成path路径
-function getPath(line: Line) {
+function getPath(line: any) {
   return `M${line.x1},${line.y1} L${line.x2},${line.y2}`;
 }
 

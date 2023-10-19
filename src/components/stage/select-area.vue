@@ -11,22 +11,22 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted, reactive, inject, type Ref } from "vue";
-import { IBoundingBox, ISprite } from "../meta-data/types";
+import { onMounted, onUnmounted, reactive, inject } from "vue";
+import { ISprite } from "../meta-data/types";
 
 const props = defineProps<{
   spriteList: ISprite[];
 }>();
 const emits = defineEmits(["select-area-move"]);
-const svgRef: Ref<HTMLElement> = inject("svgRef");
-const selectArea = reactive({
+const svgRef: any = inject("svgRef");
+const selectArea = reactive<any>({
   x: 0,
   y: 0,
   width: 0,
   height: 0,
 });
 
-function setSelectArea(info: Partial<IBoundingBox>) {
+function setSelectArea(info: any) {
   Object.keys(info).forEach((key: string) => {
     selectArea[key] = info[key];
   });
@@ -34,23 +34,23 @@ function setSelectArea(info: Partial<IBoundingBox>) {
 
 let stageInfo = { x: 0, y: 0, width: 0, height: 0 };
 
-const startPoint = {
+const startPoint: any = {
   x: 0,
   y: 0,
 };
 
-const endPoint = {
+const endPoint: any = {
   x: 0,
   y: 0,
 };
 
-function setStartPoint(info: { x?: number; y?: number }) {
+function setStartPoint(info: any) {
   for (const key in info) {
     startPoint[key] = info[key];
   }
 }
 
-function setEndPoint(info: { x?: number; y?: number }) {
+function setEndPoint(info: any) {
   for (const key in info) {
     endPoint[key] = info[key];
   }
@@ -64,7 +64,7 @@ onUnmounted(() => {
 });
 
 function handleDown(e: MouseEvent) {
-  const spriteType = e.target!.getAttribute("data-sprite-type");
+  const spriteType = (e.target as HTMLElement).getAttribute("data-sprite-type");
   console.log(spriteType, "spriteType");
 
   // 如果点击不在舞台上，return

@@ -2,6 +2,7 @@ import {
   IBoundingBox,
   ICoordinate,
   ISize,
+  ISprite,
 } from "../components/meta-data/types";
 import { IBox, IPoint, HANDLER } from "./types";
 
@@ -422,13 +423,13 @@ export function calcMoveBoxInfoWithoutRotate({
  * @param allList 所有选中的精灵列表数据
  * @returns 新的选中的精灵列表
  */
-export function getSelectList({ id, activeList, allList }) {
+export function getSelectList({ id, activeList, allList }: any) {
   let target = [...activeList];
   // 如果本身就在活跃的精灵列表中，返回原有的精灵列表
-  const findInActive = activeList.find((f) => f.id === id);
+  const findInActive = findRootIdItem(activeList, id);
   if (!findInActive) {
     // 否则在全局精灵列表中查找
-    const findInAll = allList.find((f) => f.id === id);
+    const findInAll = findRootIdItem(allList, id);
     // 如果找到了，将找到的这一个设置为新的选中的精灵
     if (findInAll) {
       target = [findInAll];
@@ -440,6 +441,36 @@ export function getSelectList({ id, activeList, allList }) {
     target,
   };
 }
+
+/**
+ * 根据id查找树状结构，找到了返回根数据
+ * @param tree
+ * @param id
+ * @returns
+ */
+function findRootIdItem(treeArr, id) {  
+  let currentLevel = -1;  
+  for (let i = 0; i < treeArr.length; i++) {  
+      const current = treeArr[i];  
+      // 如果找到id并且没有子节点，返回当前节点  
+      if (current.id === id && !current.children) {  
+          return current;  
+      }  
+      // 如果当前级不是第一级或者没有找到，在子级中查找  
+      if (current.children && current.children.length > 0) {  
+          const result = findRootIdItem(current.children, id);  
+          if (result) {  
+              // 如果找到的id是在子级中，将当前级数加1，并返回当前节点的父节点  
+              if (currentLevel === -1) {  
+                  currentLevel = i;  
+              }  
+              return treeArr[currentLevel];  
+          }  
+      }  
+  }  
+  // 如果没有找到，返回null  
+  return null;  
+}  
 
 function getLength(x: number, y: number): number {
   return Math.sqrt(x * x + y * y);
@@ -886,7 +917,7 @@ export const getAuxLine = ({
   rect,
   inactiveRectList,
   stageSize = { width: 0, height: 0 },
-}) => {
+}: any) => {
   // 正在拖拽中的矩形的各个边信息
 
   const rectLeft = rect.x;
@@ -1236,7 +1267,7 @@ export const roundingUnitize = (n: number, unit: number, adsorbDis = 4) => {
  * @returns
  */
 function getWrapperBoxInfo(rectList: IBoundingBox[]) {
-  console.log(rectList, "rectList");
+  // console.log(rectList, "rectList");
 
   const p = {
     minX: 10000000,
@@ -1276,19 +1307,24 @@ function getWrapperBoxInfo(rectList: IBoundingBox[]) {
   return boxInfo;
 }
 /**
- * 
+ *
  * @param pointList 多个坐标点包含的矩形
- * @returns 
+ * @returns
  */
 export function getWrapperBoxByPoint(pointList: ICoordinate[]) {
-  const [minX, minY, maxX, maxY] = [Math.min(...pointList.map(m=>m.x)),Math.min(...pointList.map(m=>m.y)),Math.max(...pointList.map(m=>m.x)),Math.max(...pointList.map(m=>m.y))]
-  
+  const [minX, minY, maxX, maxY] = [
+    Math.min(...pointList.map((m) => m.x)),
+    Math.min(...pointList.map((m) => m.y)),
+    Math.max(...pointList.map((m) => m.x)),
+    Math.max(...pointList.map((m) => m.y)),
+  ];
+
   return {
     x: minX,
     y: minY,
     width: maxX - minX,
-    height: maxY - minY
-  }
+    height: maxY - minY,
+  };
 }
 
 export {

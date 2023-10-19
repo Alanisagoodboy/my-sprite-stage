@@ -11,6 +11,9 @@
             {{ item.title }}
           </li>
         </ul>
+
+        <button @click="handleGroup">组合</button>
+        <button @click="handleCancelGroup">解组</button>
       </div>
     </div>
     <div class="content">
@@ -18,23 +21,17 @@
       <div class="center">
         <Stage :width="stage.width" :height="stage.height">
           <!-- 网格线 -->
-          <GridLine
+          <GridLines
             :width="stage.width"
             :height="stage.height"
             :spacing="50"
-          ></GridLine>
+          ></GridLines>
 
-          <!-- 精灵容器 -->
-          <SpriteContainer
-            v-for="sprite of spriteList"
-            :sprite="sprite"
-            :key="sprite.id"
-          >
-            <component
-              :is="registerSpriteMetaMap[sprite.type].component"
-              :sprite="sprite"
-            ></component>
-          </SpriteContainer>
+          <!-- 精灵树渲染 -->
+          <SpriteTree
+            :spriteList="spriteList"
+            :registerSpriteMetaMap="registerSpriteMetaMap"
+          ></SpriteTree>
 
           <!-- 辅助线 -->
           <AuxiliaryLine :lineList="auxiliaryLineList" />
@@ -72,25 +69,23 @@
 </template>
 <script setup lang="ts">
 import Stage from "./components/stage/index.vue";
-import SpriteContainer from "./components/sprite/sprite-container.vue";
+// import SpriteContainer from "./components/sprite/sprite-container.vue";
+import SpriteTree from "./components/sprite/sprite-tree.vue";
 import ActiveSpritesContainer from "./components/sprite/active-sprites-container.vue";
 import AnchorPoints from "./components/stage/anchor-point/anchor-points.vue";
-import GridLine from "./components/stage/grid-line.vue";
+import GridLines from "./components/stage/grid-line.vue";
 import selectArea from "./components/stage/select-area.vue";
 import AuxiliaryLine from "./components/stage/auxiliary-line.vue";
 
-import { ref, computed, shallowRef, provide, reactive } from "vue";
+import { ref, shallowRef, provide, reactive } from "vue";
 
 import { default_sprite_data } from "./components/meta-data/index";
 
 import {
-  IBoxMove,
   ISprite,
   ISpriteMeta,
   SPRITE_NAME,
 } from "./components/meta-data/types";
-import { HANDLER, IBox } from "./utils/types";
-import { getAuxiliaryLine, handleAdsorb } from "./utils";
 
 const componentList = Object.values(default_sprite_data).map((m) => {
   return {
@@ -102,9 +97,39 @@ const componentList = Object.values(default_sprite_data).map((m) => {
 // 舞台信息
 const stage = reactive({
   width: 800,
-  height: 400,
+  height: 600,
 });
 // 精灵列表
+const a = {
+  id: "0.6850321120002762",
+  type: "GroupSprite",
+  attrs: { fill: "#eee" },
+  boundingBox: {
+    x: 50,
+    y: 200,
+    width: 200,
+    height: 200,
+  },
+  children: [
+    {
+      id: "0.5809304020102564",
+      type: "RectSprite",
+      attrs: { fill: "#eee" },
+      boundingBox: { x: 100, y: 100, width: 160, height: 100 },
+    },
+    {
+      id: "0.8790513958246835",
+      type: "RectSprite",
+      attrs: { fill: "#eee" },
+      boundingBox: {
+        x: 210.40000915527344,
+        y: 235.99998474121094,
+        width: 160,
+        height: 100,
+      },
+    },
+  ],
+};
 const spriteList = reactive<ISprite[]>([]);
 // 活跃（被选中）状态的精灵列表
 const activeSpriteList = ref<Array<ISprite>>([]);
@@ -202,6 +227,37 @@ function handleSelectAreaMove(activeList: ISprite[]) {
   activeSpriteList.value = [...activeList];
   console.log(activeSpriteList.value, "activeList");
 }
+
+// 组合
+function handleGroup() {
+  // 1.组合只针对被选中的精灵
+  const groupMeta = default_sprite_data[SPRITE_NAME.GROUP];
+  registerSprite(groupMeta);
+  const groupSpriteData = groupMeta.createInitData(
+    activeSpriteList.value.map((m) => m.boundingBox)
+  );
+  const { x, y } = groupSpriteData.boundingBox;
+  groupSpriteData.children.push(
+    ...activeSpriteList.value.map((m) => {
+      return {
+        ...m,
+        boundingBox: {
+          x: (m.boundingBox.x - x),
+          y: (m.boundingBox.y - y),
+          width: m.boundingBox.width,
+          height: m.boundingBox.height,
+        },
+      };
+    })
+  );
+
+  activeSpriteList.value = [groupSpriteData];
+  spriteList.length = 0;
+  spriteList.push(groupSpriteData);
+}
+
+// 解组
+function handleCancelGroup() {}
 
 // 向后代注入当前注册的精灵信息
 provide("registerSpriteMetaMap", registerSpriteMetaMap);

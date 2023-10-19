@@ -4,7 +4,8 @@
     class="sprite-container"
     :transform="transform"
   >
-    <slot></slot>
+    <text>{{ sprite.id }}</text>
+    <slot> </slot>
   </g>
 </template>
 <script setup lang="ts">

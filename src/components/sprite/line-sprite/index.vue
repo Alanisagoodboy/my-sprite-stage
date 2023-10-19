@@ -15,7 +15,7 @@ const props = defineProps<{
 
 const bind = computed(() => {
   const { boundingBox, attrs } = props.sprite
-  const {x, y, width, height} = boundingBox
+  const {/* x, y, */ width, height} = boundingBox
   const { points } = attrs;
   const { x: x1_rate, y: y1_rate } = points[0];
   const { x: x2_rate, y: y2_rate } = points[1];

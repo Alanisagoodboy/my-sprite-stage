@@ -5,6 +5,7 @@ export enum SPRITE_NAME {
   LINE = "LineSprite", // 线段
   ROUND_RECT = "RoundRectSprite", // 圆角矩形
   POLYLINE = "PolylineSprite", // 折线
+  GROUP = "GroupSprite", // 组合精灵
 }
 
 // 尺寸
@@ -94,12 +95,13 @@ export interface Line {
 export interface ISpriteMeta {
   title: string; // 精灵名字
   type: SPRITE_NAME; // 精灵类型
-  createInitData: () => ISprite; // 创建精灵的初始数据函数
-  component: Component; // 精灵组件
+  createInitData: (...args: any[]) => ISprite; // 创建精灵的初始数据函数
+  component?: Component; // 精灵组件, 组合精灵没有对应精灵组件
   resizePoints: "all" | "empty"; // 矩形选框的句柄形变点配置
   isShowRotateHandle: boolean; // 是否可以旋转
   anchors?: Record<string, any>; // 锚点
   ports?: Record<string, any>; // 连线桩
+  children?: ISpriteMeta[]
 }
 
 export interface IPort {

@@ -68,7 +68,7 @@ const dotSize = 6;
 
 const props = defineProps<{
   // 舞台尺寸
-  stageSize: ISize,
+  stageSize: ISize;
   // 精灵列表
   spriteList: ISprite[];
   // 活跃的精灵列表
@@ -97,8 +97,12 @@ const dotList: IDot[] = [
 const resizePoints = computed(() => {
   if (props.activeSpriteList.length === 1) {
     const { registerSpriteMetaMap, activeSpriteList } = props;
+    console.log(registerSpriteMetaMap, 'registerSpriteMetaMap');
+    
     const activeMeta =
       registerSpriteMetaMap[(activeSpriteList[0] as ISprite).type];
+      console.log(activeMeta, 'activeMeta');
+      
     if (activeMeta.resizePoints === "all") {
       return dotList;
     }
@@ -109,6 +113,7 @@ const resizePoints = computed(() => {
     return dotList;
   }
   return [];
+  // return dotList;
 });
 
 // 旋转操作杆渲染
@@ -195,6 +200,9 @@ async function onMousedown(e: MouseEvent) {
 
   // 查找 id 点击的精灵的id
   const id = spriteDom?.getAttribute("data-sprite-id");
+
+  console.log(id, "jjj");
+
   const selectBox = getSelectList({
     id,
     activeList: props.activeSpriteList,

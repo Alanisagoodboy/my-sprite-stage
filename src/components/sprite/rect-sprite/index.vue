@@ -34,7 +34,7 @@ const f = ref({
 const editDivRef = ref(null);
 
 function autoCalcTextSize() {
-  const rect = editDivRef.value.getBoundingClientRect();
+  const rect = (editDivRef.value as any as HTMLElement).getBoundingClientRect();
   f.value.height = rect.height;
   f.value.width = rect.width;
 }
@@ -46,11 +46,11 @@ function handleTextInput() {
 }
 
 const bind = computed(() => {
-  const { x, y, width, height } = props.sprite?.boundingBox;
-  const centerPoint = {
-    x: x + width / 2,
-    y: y + height / 2,
-  };
+  const {/*  x, y, */ width, height } = props.sprite?.boundingBox;
+  // const centerPoint = {
+  //   x: x + width / 2,
+  //   y: y + height / 2,
+  // };
   return {
     x: 0,
     y: 0,
