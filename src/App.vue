@@ -81,6 +81,8 @@ import { ref, shallowRef, provide, reactive } from "vue";
 
 import { default_sprite_data } from "./components/meta-data/index";
 
+import { getWrapperBoxInfo } from "./utils/index.ts";
+
 import {
   ISprite,
   ISpriteMeta,
@@ -242,8 +244,8 @@ function handleGroup() {
       return {
         ...m,
         boundingBox: {
-          x: (m.boundingBox.x - x),
-          y: (m.boundingBox.y - y),
+          x: m.boundingBox.x - x,
+          y: m.boundingBox.y - y,
           width: m.boundingBox.width,
           height: m.boundingBox.height,
         },
@@ -251,13 +253,85 @@ function handleGroup() {
     })
   );
 
+  for (let i = spriteList.length - 1; i >= 0; i--) {
+    if (activeSpriteList.value.find((f) => f.id === spriteList[i].id))
+      spriteList.splice(i, 1);
+  }
   activeSpriteList.value = [groupSpriteData];
-  spriteList.length = 0;
   spriteList.push(groupSpriteData);
 }
 
-// 解组
-function handleCancelGroup() {}
+/**
+ * 解组
+ * 解除最最近的一个组
+ * 对应的数据是
+ */
+
+function handleCancelGroup() {
+  // 如果被选中的是一个并且是组
+  if (activeSpriteList.value.length === 1) {
+    const groupSpriteData = activeSpriteList.value[0];
+    if (groupSpriteData.children.length > 0) {
+      const { x, y } = groupSpriteData.boundingBox;
+      const filter = groupSpriteData.children
+        .filter((f) => !f.children)
+        .map((m) => {
+          return {
+            ...m,
+            boundingBox: {
+              x: m.boundingBox.x + x,
+              y: m.boundingBox.y + y,
+              width: m.boundingBox.width,
+              height: m.boundingBox.height,
+            },
+          };
+        });
+
+      console.log(filter, "filter");
+
+      for (let i = groupSpriteData.children.length - 1; i >= 0; i--) {
+        if (filter.find((f) => f.id === groupSpriteData.children[i].id))
+          groupSpriteData.children.splice(i, 1);
+      }
+
+      if (groupSpriteData.children.length === 0) {
+        console.log(groupSpriteData, "groupSpriteData");
+
+        const aIndex = spriteList.findIndex((f) => f.id === groupSpriteData.id);
+        spriteList.splice(aIndex, 1);
+
+        const bIndex = activeSpriteList.value.findIndex(
+          (f) => f.id === groupSpriteData.id
+        );
+        activeSpriteList.value.splice(bIndex, 1);
+        console.log(aIndex, bIndex, "k");
+      } else {
+        const newBoundingBoxList = groupSpriteData.children.map((m) => {
+          return {
+            ...m.boundingBox,
+            x: m.boundingBox.x + groupSpriteData.boundingBox.x,
+            y: m.boundingBox.y + groupSpriteData.boundingBox.y,
+          };
+        });
+
+        console.log(newBoundingBoxList, "newBoundingBoxList");
+        const newBoundingBox = getWrapperBoxInfo(newBoundingBoxList);
+        console.log(newBoundingBox, "newBoundingBox");
+
+        groupSpriteData.boundingBox = newBoundingBox;
+        groupSpriteData.children.forEach((f) => {
+          f.boundingBox.x -= newBoundingBox.x;
+          f.boundingBox.y -= newBoundingBox.y;
+        });
+
+        console.log(groupSpriteData, "groupSpriteData");
+      }
+
+      spriteList.push(...filter);
+      activeSpriteList.value.push(...filter);
+    }
+  }
+}
 
 // 向后代注入当前注册的精灵信息
 provide("registerSpriteMetaMap", registerSpriteMetaMap);
