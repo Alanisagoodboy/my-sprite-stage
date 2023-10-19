@@ -1,14 +1,18 @@
 <template>
-  <g>
+  <g
+    v-for="{ anchorPoints, sprite } of anchorPointsList"
+    :key="sprite.id"
+    :transform="`translate(${sprite.boundingBox.x} ${sprite.boundingBox.y})`"
+  >
     <circle
-      r="10"
-      :cx="item.x"
-      :cy="item.y"
-      v-for="(item, index) of anchorPoints"
+      r="4"
+      :cx="point.x"
+      :cy="point.y"
+      v-for="(point, index) of anchorPoints"
       :key="index"
       fill="#1e7fff"
       filter="drop-shadow(rgba(0, 0, 0, 0.4) 0 0 5)"
-      @pointerdown="handleDown($event, index)"
+      @pointerdown="handleDown($event, { anchorPoints, sprite }, +index)"
     ></circle>
   </g>
 </template>
@@ -17,11 +21,10 @@
 import { computed } from "vue";
 import { ICoordinate, ISprite } from "../../meta-data/types";
 import { default_sprite_data } from "../../meta-data";
-import { getWrapperBoxByPoint } from "../../../utils/index.ts";
 
 const p = defineProps<{
-  spriteList: ISprite[];
-  sprite: ISprite;
+  // 活跃的精灵列表
+  activeSpriteList: ISprite[];
 }>();
 
 const emits = defineEmits([
@@ -31,37 +34,36 @@ const emits = defineEmits([
 ]);
 
 // 渲染的锚点信息
-const anchorPoints = computed(() => {
-  const sprite = p.sprite;
-  const { width, height } = sprite.boundingBox;
-  const metaData = default_sprite_data[sprite.type];
-  const { anchors } = metaData;
-  if (anchors) {
-    const ratePoint = anchors.getPoints({ sprite });
-    const point = ratePoint.map((m: ICoordinate) => {
-      return {
-        x: m.x * width,
-        y: m.y * height,
-      };
-    });
-    return point;
-  }
-  return [];
+const anchorPointsList = computed(() => {
+  let arr: { sprite: ISprite; anchorPoints: ICoordinate[] }[] = [];
+  p.activeSpriteList.forEach((sprite) => {
+    const { anchors } = default_sprite_data[sprite.type];
+    if (anchors) {
+      const { width, height } = sprite.boundingBox;
+      const ratePoint = anchors.getPoints({ sprite });
+      const anchorPoints = ratePoint.map((m: ICoordinate) => {
+        return {
+          x: m.x * width,
+          y: m.y * height,
+        };
+      });
+      arr.push({
+        sprite,
+        anchorPoints,
+      });
+    }
+  });
+
+  return arr;
 });
 
 // 初始化 记录的点坐标
-let recordPointInfo = {
-  // 线段左上角的坐标信息
-  ltInfoInStage: {
-    x: 0,
-    y: 0,
-  },
+let recordPointInfo: Record<string, any> = {
   initPoint: {
     x: 0,
     y: 0,
   },
-  targetAnchorPoints: [],
-  initAnchorPoints: [],
+  targetAnchorPoints: [] as ICoordinate[],
   downPoint: {
     x: 0,
     y: 0,
@@ -74,22 +76,22 @@ let recordPointInfo = {
     this.initPoint.y = y;
   },
 
+  // 当前操作的锚点属于哪个精灵
+  activeInfo: {} as {
+    sprite: ISprite;
+    anchorPoints: ICoordinate[];
+  },
+
+  // 记录按下鼠标的视口坐标
   setDownPoint({ x, y }: { x: number; y: number }) {
     this.downPoint.x = x;
     this.downPoint.y = y;
   },
 
-  setLtInfoInStage({ x, y }: { x: number; y: number }) {
-    this.ltInfoInStage.x = x;
-    this.ltInfoInStage.y = y;
-  },
 
+  // 记录当前操作的数据哪个精灵锚点的第几个索引
   setIndex(index: number) {
     this.index = index;
-  },
-
-  setInitAnchorPoints(index: number, point: { x: number; y: number }) {
-    this.initAnchorPoints[index] = point;
   },
 
   setTargetAnchorPoints(index: number, point: { x: number; y: number }) {
@@ -98,37 +100,35 @@ let recordPointInfo = {
 };
 
 // 按下
-function handleDown(e: MouseEvent, index: number) {
+function handleDown(
+  e: MouseEvent,
+  activeInfo: { sprite: ISprite; anchorPoints: ICoordinate[] },
+  index: number
+) {
   console.log(222);
 
   // 阻止冒泡 防止触发移动事件
   e.stopPropagation();
   // 阻止默认拖拽等事件，防止无法触发up事件
   e.preventDefault();
-  console.log(p.sprite.id, "p.sprite.id");
+  recordPointInfo.activeInfo = activeInfo;
 
-  emits("select", p.sprite.id);
-  const { points } = JSON.parse(JSON.stringify(p.sprite.attrs));
-  const { x, y, width, height } = p.sprite.boundingBox;
+  emits("select", activeInfo.sprite.id);
+
+  const { x, y} = activeInfo.sprite.boundingBox;
   // 记录操作的是哪个点
   recordPointInfo.setIndex(index);
 
-  // recordPointInfo.targetAnchorPoints = [...anchorPoints.value];
-
-  recordPointInfo.ltInfoInStage = {
-    x,
-    y,
-    width,
-    height,
-  };
-  // 缓存点的坐标系初始位置，转化为坐标轴上的点
-  recordPointInfo.targetAnchorPoints = points.map((m) => {
+  recordPointInfo.targetAnchorPoints = JSON.parse(
+    JSON.stringify(activeInfo.anchorPoints)
+  ).map((m: ICoordinate) => {
     return {
-      x: m.x * width + x,
-      y: m.y * height + y,
+      x: m.x + x,
+      y: m.y + y,
     };
   });
-  // // 缓存点的坐标系初始位置，转化为坐标轴上的点
+
+  // 缓存点的坐标系初始位置，转化为坐标轴上的点
   recordPointInfo.setInitPoint({
     ...recordPointInfo.targetAnchorPoints[index],
   });
@@ -145,44 +145,34 @@ function handleDown(e: MouseEvent, index: number) {
 
 // 移动
 function handleMove(e: MouseEvent) {
-  const { initPoint, downPoint, index } = recordPointInfo;
-  console.log(downPoint, "downPoint", initPoint);
+  const {
+    initPoint,
+    downPoint,
+    index,
+    activeInfo: { sprite },
+  } = recordPointInfo;
 
   const x = e.clientX - downPoint.x + +initPoint.x;
   const y = e.clientY - downPoint.y + +initPoint.y;
 
-  // 锚点移动事件 抛给父组件
+  // 设置新的锚点坐标
   recordPointInfo.setTargetAnchorPoints(index, { x, y });
-
-  const boundingBox = getWrapperBoxByPoint(recordPointInfo.targetAnchorPoints);
-
-  const points = recordPointInfo.targetAnchorPoints.map((m) => {
-    return {
-      x: (m.x - boundingBox.x) / boundingBox.width,
-      y: (m.y - boundingBox.y) / boundingBox.height,
-    };
+  const _sprite: ISprite = JSON.parse(JSON.stringify(sprite));
+  const info = default_sprite_data[_sprite.type].anchors.pointChange({
+    sprite: _sprite,
+    targetPointsInStage: recordPointInfo.targetAnchorPoints,
   });
-
-  const _sprite = JSON.parse(JSON.stringify(p.sprite));
   emits("anchor-point-move", {
-    id: p.sprite.id,
-    sprite: {
-      ..._sprite,
-      boundingBox,
-      attrs: {
-        ..._sprite.attrs,
-        points,
-      },
-    },
+    ...info,
   });
 }
 
 // 抬起
 function handleUp() {
   emits("anchor-point-move-end", {
-    initPoint: { ...recordPointInfo.initPoint },
-    targetAnchorPoints: [...recordPointInfo.targetAnchorPoints],
-    anchorPoints: [...anchorPoints.value],
+    // initPoint: { ...recordPointInfo.initPoint },
+    // targetAnchorPoints: [...recordPointInfo.targetAnchorPoints],
+    // anchorPoints: [...anchorPoints.value],
   });
   document.removeEventListener("pointerup", handleUp, false);
   document.removeEventListener("pointermove", handleMove, false);

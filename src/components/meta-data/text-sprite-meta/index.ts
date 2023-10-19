@@ -7,7 +7,7 @@ export const textSpriteMeta: ISpriteMeta = {
   type: SPRITE_NAME.TEXT,
   createInitData() {
     return {
-      id: "TextSprite1",
+      id: Math.random() + '',
       type: SPRITE_NAME.TEXT,
       attrs: {
         // fill: "#fdc5bf"

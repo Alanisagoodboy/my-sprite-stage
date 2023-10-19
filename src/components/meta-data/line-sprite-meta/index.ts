@@ -1,17 +1,20 @@
 /* 线段精灵 元数据 */
-import { ISprite, ISpriteMeta, SPRITE_NAME } from "../types";
+import { ISpriteMeta, SPRITE_NAME } from "../types";
 import LineSprite from "../../sprite/line-sprite/index.vue";
+import { createAnchorsForLine } from "../helps";
+
+const { getPoints, pointChange } = createAnchorsForLine();
 export const lineSpriteMeta: ISpriteMeta = {
   title: "线段",
   // 初始化描述数据
   createInitData() {
     return {
-      id: "LineSpriteMeta1",
+      id: Math.random() + '',
       type: SPRITE_NAME.LINE,
       attrs: {
         stroke: "#84db92",
         strokeWidth: 3,
-        
+
         // points 的单位是相对单位,相对宽高的比率
         points: [
           {
@@ -45,9 +48,10 @@ export const lineSpriteMeta: ISpriteMeta = {
      * @param param0
      * @returns
      */
-    getPoints: ({ sprite }: { sprite: ISprite }) => {
-      const { points } = sprite.attrs;
-      return [...points];
-    },
+    getPoints,
+    /**
+     * 锚点变化时
+     */
+    pointChange
   },
 };

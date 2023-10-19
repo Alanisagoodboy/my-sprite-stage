@@ -1,12 +1,14 @@
 /* 线段精灵 元数据 */
-import { ISprite, ISpriteMeta, SPRITE_NAME } from "../types";
+import { ISpriteMeta, SPRITE_NAME } from "../types";
 import PolylineSprite from "../../sprite/polyline-sprite/index.vue";
+import { createAnchorsForLine } from "../helps";
+const { getPoints, pointChange } = createAnchorsForLine();
 export const polylineSpriteMeta: ISpriteMeta = {
   title: "折线",
   // 初始化描述数据
   createInitData() {
     return {
-      id: "LineSpriteMeta1",
+      id: Math.random() + '',
       type: SPRITE_NAME.POLYLINE,
       attrs: {
         stroke: "#84db92",
@@ -17,12 +19,12 @@ export const polylineSpriteMeta: ISpriteMeta = {
             y: 0,
           },
           {
-            x: 30,
-            y: 40,
+            x: 1,
+            y: 0.2,
           },
           {
-            x: 60,
-            y: 40,
+            x: 0.5,
+            y: 1,
           },
         ],
       },
@@ -47,9 +49,7 @@ export const polylineSpriteMeta: ISpriteMeta = {
      * @param param0
      * @returns
      */
-    getPoints: ({ sprite }: { sprite: ISprite }) => {
-      const { points } = sprite.attrs;
-      return [...points];
-    },
+    getPoints,
+    pointChange,
   },
 };

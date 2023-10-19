@@ -7,7 +7,7 @@ export const rectSpriteMeta: ISpriteMeta = {
   type: SPRITE_NAME.RECT,
   createInitData() {
     return {
-      id: "RectSprite1",
+      id: Math.random() + '',
       type: SPRITE_NAME.RECT,
       attrs: {
         // fill: "#fdc5bf"

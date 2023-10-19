@@ -34,14 +34,6 @@
               :is="registerSpriteMetaMap[sprite.type].component"
               :sprite="sprite"
             ></component>
-
-            <!-- 在精灵容器中加入锚点渲染器 -->
-            <AnchorPoints
-              :spriteList="spriteList"
-              :sprite="sprite"
-              @select="select"
-              @anchor-point-move="handleAnchorPointMove"
-            />
           </SpriteContainer>
 
           <!-- 辅助线 -->
@@ -60,9 +52,15 @@
             @select="select"
           />
 
-          <!-- 选框 -->
+          <!-- 锚点渲染器: 为线条或者部分图形增加辅助功能 -->
+          <AnchorPoints
+            :activeSpriteList="activeSpriteList"
+            @select="select"
+            @anchor-point-move="handleAnchorPointMove"
+          />
+
+          <!-- 选框: 用于多选 -->
           <selectArea
-            v-if="false"
             :spriteList="spriteList"
             @select-area-move="handleSelectAreaMove"
           />
@@ -117,6 +115,8 @@ const registerSpriteMetaMap: any = shallowRef({});
 // 对齐线
 const auxiliaryLineList = ref<any[]>([]);
 
+// const boundingRectInfo = computed()
+
 /**
  *
  * 注册精灵
@@ -140,11 +140,7 @@ function addSpriteToStage({ name }: { name: SPRITE_NAME }) {
 
   registerSprite(spriteMeta);
 
-  const _data = spriteMeta.createInitData();
-  const sprite = {
-    ..._data,
-    id: name + Math.random(),
-  };
+  const sprite = spriteMeta.createInitData();
   // if (Array.isArray(sprite)) {
   //   // spriteList.push(...sprite);
   // } else {
@@ -191,42 +187,13 @@ function select(info: any) {
 // 锚点移动时 待优化 todo
 function handleAnchorPointMove(info: any) {
   const find = spriteList.find((f) => f.id === info.id);
-  Object.assign(find, info.sprite);
-
-  // 如果是圆角矩形
-  // if (sprite.type === SPRITE_NAME.ROUND_RECT) {
-  //   // 根据锚点最新位置计算圆角大小
-  //   const { boundingBox } = sprite;
-  //   const { width, height } = boundingBox;
-  //   const len = Math.min(width, height);
-  //   const x = Math.max(0, Math.min(len / 2, info.x));
-  //   const borderRadius = (100 * x) / len;
-  //   sprite.attrs.borderRadius = borderRadius;
-  // }
+  if (find) {
+    Object.assign(find, info.sprite);
+  }
 }
 
 // 锚点移动结束
 // function handleAnchorPointMoveEnd(info: any) {}
-
-function getBoxInfoByPoint(point: { x: number; y: number }[]) {
-  const xList = point.map((m) => m.x);
-  const yList = point.map((m) => m.y);
-
-  const minX = Math.min(...xList);
-  const maxX = Math.max(...xList);
-  const minY = Math.min(...yList);
-  const maxY = Math.max(...yList);
-
-  // console.log({ minX, maxY, maxX, minY });
-
-  return {
-    x: +minX,
-    y: +minY,
-    width: +maxX - +minX,
-    height: +maxY - +minY,
-    rotate: 0,
-  };
-}
 
 /**
  *
