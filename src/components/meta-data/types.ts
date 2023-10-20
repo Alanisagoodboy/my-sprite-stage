@@ -68,6 +68,7 @@ export interface ISprite<IProps = any> {
   type: SPRITE_NAME; // 精灵名字/类型
   attrs: IProps; // 属性
   boundingBox: IBoundingBox;
+  children?: Array<ISprite<IProps>> ;
 }
 
 // 默认图形props
@@ -101,7 +102,6 @@ export interface ISpriteMeta {
   isShowRotateHandle: boolean; // 是否可以旋转
   anchors?: Record<string, any>; // 锚点
   ports?: Record<string, any>; // 连线桩
-  children?: ISpriteMeta[]
 }
 
 export interface IPort {

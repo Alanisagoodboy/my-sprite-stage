@@ -97,12 +97,12 @@ const dotList: IDot[] = [
 const resizePoints = computed(() => {
   if (props.activeSpriteList.length === 1) {
     const { registerSpriteMetaMap, activeSpriteList } = props;
-    console.log(registerSpriteMetaMap, 'registerSpriteMetaMap');
-    
+    console.log(registerSpriteMetaMap, "registerSpriteMetaMap");
+
     const activeMeta =
       registerSpriteMetaMap[(activeSpriteList[0] as ISprite).type];
-      console.log(activeMeta, 'activeMeta');
-      
+    console.log(activeMeta, "activeMeta");
+
     if (activeMeta.resizePoints === "all") {
       return dotList;
     }
@@ -288,6 +288,24 @@ function onRotateMousedown(e: MouseEvent) {
   // document.addEventListener("pointermove", onMousemove);
   // document.addEventListener("pointerup", onMouseup);
 }
+
+// const resList = [
+//   {
+//     display: 1,
+//     color: 2,
+//   },
+// ];
+
+// const localList = resList.map(m=> {
+//   const {display,...rest} = m
+//   return {
+//     ...rest,
+//     showLink: display
+//   }
+// })
+
+// console.log(localList);
+
 </script>
 
 <style lang="scss"></style>

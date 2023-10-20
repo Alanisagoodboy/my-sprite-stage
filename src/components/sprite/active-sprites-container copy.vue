@@ -253,8 +253,8 @@ async function onMousedown(e: MouseEvent) {
   const id = spriteDom?.getAttribute("data-sprite-id");
   emit("select", id);
   // 传出事件，再等待新的props
-  await nextTick();
-  console.log(id, "id");
+  // await nextTick();
+  // console.log(id, "id");
 
   const lastDragInfo = getActiveBoxInfo();
   const downPointActiveList = JSON.parse(JSON.stringify(props.activeSpriteList))

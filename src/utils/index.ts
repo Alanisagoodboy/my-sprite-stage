@@ -434,6 +434,8 @@ export function getSelectList({ id, activeList, allList }: any) {
     if (findInAll) {
       target = [findInAll];
     }
+    console.log(findInAll, 'findInAll');
+    
   }
 
   return {
@@ -443,7 +445,7 @@ export function getSelectList({ id, activeList, allList }: any) {
 }
 
 /**
- * 根据id查找树状结构，找到了返回根数据
+ * 根据id查找树状结构，找到了返回根数据 todo
  * @param tree
  * @param id
  * @returns
@@ -452,8 +454,8 @@ function findRootIdItem(treeArr, id) {
   let currentLevel = -1;  
   for (let i = 0; i < treeArr.length; i++) {  
       const current = treeArr[i];  
-      // 如果找到id并且没有子节点，返回当前节点  
-      if (current.id === id && !current.children) {  
+      // 如果找到id并且是第一级，返回当前节点  
+      if (current.id === id && currentLevel === -1) {  
           return current;  
       }  
       // 如果当前级不是第一级或者没有找到，在子级中查找  

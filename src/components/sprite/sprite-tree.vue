@@ -4,12 +4,21 @@
     v-for="sprite of spriteList"
     :sprite="sprite"
     :key="sprite.id"
+    
   >
     <template v-if="sprite.children && sprite.children.length > 0">
-      <sprite-tree
-        :spriteList="sprite.children"
-        :registerSpriteMetaMap="registerSpriteMetaMap"
-      ></sprite-tree>
+      <g class="g">
+        <rect
+          class="rect"
+          :width="sprite.boundingBox.width"
+          :height="sprite.boundingBox.height"
+          fill="transparent"
+        ></rect>
+        <sprite-tree
+          :spriteList="sprite.children"
+          :registerSpriteMetaMap="registerSpriteMetaMap"
+        ></sprite-tree>
+      </g>
     </template>
     <template v-else>
       <component
@@ -33,3 +42,10 @@ defineProps<{
   registerSpriteMetaMap: any;
 }>();
 </script>
+
+<style scoped>
+.g:hover > .rect {
+  stroke: rgba(57, 140, 254, 0.5);
+  stroke-width: 1px;
+}
+</style>

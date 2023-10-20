@@ -2,11 +2,12 @@
   <div class="editor-container">
     <div class="header">
       <div class="header-bar">
-        <ul class="ul">
+        <ul class="ul" @dragstart="handleDragStart">
           <li
             class="li"
-            v-for="item of componentList"
-            @click="addSpriteToStage(item)"
+            v-for="(item, index) of componentList"
+            draggable
+            :data-index="index"
           >
             {{ item.title }}
           </li>
@@ -56,6 +57,8 @@
             @anchor-point-move="handleAnchorPointMove"
           />
 
+          <!-- 工具栏渲染器 -->
+          <Toolbar :activeSpriteList="activeSpriteList"></Toolbar>
           <!-- 选框: 用于多选 -->
           <selectArea
             :spriteList="spriteList"
@@ -76,12 +79,11 @@ import AnchorPoints from "./components/stage/anchor-point/anchor-points.vue";
 import GridLines from "./components/stage/grid-line.vue";
 import selectArea from "./components/stage/select-area.vue";
 import AuxiliaryLine from "./components/stage/auxiliary-line.vue";
+import Toolbar from "./components/sprite/toolbar-sprite.vue";
 
 import { ref, shallowRef, provide, reactive } from "vue";
 
 import { default_sprite_data } from "./components/meta-data/index";
-
-import { getWrapperBoxInfo } from "./utils/index.ts";
 
 import {
   ISprite,
@@ -102,37 +104,7 @@ const stage = reactive({
   height: 600,
 });
 // 精灵列表
-const a = {
-  id: "0.6850321120002762",
-  type: "GroupSprite",
-  attrs: { fill: "#eee" },
-  boundingBox: {
-    x: 50,
-    y: 200,
-    width: 200,
-    height: 200,
-  },
-  children: [
-    {
-      id: "0.5809304020102564",
-      type: "RectSprite",
-      attrs: { fill: "#eee" },
-      boundingBox: { x: 100, y: 100, width: 160, height: 100 },
-    },
-    {
-      id: "0.8790513958246835",
-      type: "RectSprite",
-      attrs: { fill: "#eee" },
-      boundingBox: {
-        x: 210.40000915527344,
-        y: 235.99998474121094,
-        width: 160,
-        height: 100,
-      },
-    },
-  ],
-};
-const spriteList = reactive<ISprite[]>([]);
+const spriteList = ref<ISprite[]>([]);
 // 活跃（被选中）状态的精灵列表
 const activeSpriteList = ref<Array<ISprite>>([]);
 
@@ -157,6 +129,13 @@ function registerSprite(spriteMeta: ISpriteMeta) {
   registerSpriteMetaMap.value[spriteMeta.type] = spriteMeta;
 }
 
+function handleDragStart (e: DragEvent) {
+  if (e instanceof HTMLElement) {
+    e.dataTransfer.setData('index', e.target.dataset.index)
+  }
+
+}
+
 /**
  * 添加精灵到画布
  * @param {ISprite | ISprite[]} sprite
@@ -171,7 +150,7 @@ function addSpriteToStage({ name }: { name: SPRITE_NAME }) {
   // if (Array.isArray(sprite)) {
   //   // spriteList.push(...sprite);
   // } else {
-  spriteList.push(sprite);
+  spriteList.value.push(sprite);
   activeSpriteList.value = [sprite];
   // }
 }
@@ -213,7 +192,7 @@ function select(info: any) {
 
 // 锚点移动时 待优化 todo
 function handleAnchorPointMove(info: any) {
-  const find = spriteList.find((f) => f.id === info.id);
+  const find = spriteList.value.find((f) => f.id === info.id);
   if (find) {
     Object.assign(find, info.sprite);
   }
@@ -238,6 +217,7 @@ function handleGroup() {
   const groupSpriteData = groupMeta.createInitData(
     activeSpriteList.value.map((m) => m.boundingBox)
   );
+  // 2.针对选中的元素计算出组合图形的bounding，并修改子元素的boundingBox
   const { x, y } = groupSpriteData.boundingBox;
   groupSpriteData.children.push(
     ...activeSpriteList.value.map((m) => {
@@ -253,12 +233,12 @@ function handleGroup() {
     })
   );
 
-  for (let i = spriteList.length - 1; i >= 0; i--) {
-    if (activeSpriteList.value.find((f) => f.id === spriteList[i].id))
-      spriteList.splice(i, 1);
-  }
+  // 3.将组合元素添加进去，并选中
+  const filter = spriteList.value.filter((sprite) => {
+    return !activeSpriteList.value.find((f) => f.id === sprite.id);
+  });
+  spriteList.value = [...filter, groupSpriteData];
   activeSpriteList.value = [groupSpriteData];
-  spriteList.push(groupSpriteData);
 }
 
 /**
@@ -270,66 +250,35 @@ function handleGroup() {
 function handleCancelGroup() {
   // 如果被选中的是一个并且是组
   if (activeSpriteList.value.length === 1) {
-    const groupSpriteData = activeSpriteList.value[0];
-    if (groupSpriteData.children.length > 0) {
-      const { x, y } = groupSpriteData.boundingBox;
-      const filter = groupSpriteData.children
-        .filter((f) => !f.children)
-        .map((m) => {
-          return {
-            ...m,
-            boundingBox: {
-              x: m.boundingBox.x + x,
-              y: m.boundingBox.y + y,
-              width: m.boundingBox.width,
-              height: m.boundingBox.height,
-            },
-          };
-        });
+    const group: ISprite = activeSpriteList.value[0];
+    if (!group.children) return;
 
-      console.log(filter, "filter");
+    // 1.修正第一层的位置
+    const fixGroupChildren = group.children.map((m) => {
+      return {
+        ...m,
+        boundingBox: {
+          x: m.boundingBox.x + group.boundingBox.x,
+          y: m.boundingBox.y + group.boundingBox.y,
+          width: m.boundingBox.width,
+          height: m.boundingBox.height,
+        },
+      };
+    });
+    console.log(fixGroupChildren, "fixGroupChildren");
 
-      for (let i = groupSpriteData.children.length - 1; i >= 0; i--) {
-        if (filter.find((f) => f.id === groupSpriteData.children[i].id))
-          groupSpriteData.children.splice(i, 1);
-      }
-
-      if (groupSpriteData.children.length === 0) {
-        console.log(groupSpriteData, "groupSpriteData");
-
-        const aIndex = spriteList.findIndex((f) => f.id === groupSpriteData.id);
-        spriteList.splice(aIndex, 1);
-
-        const bIndex = activeSpriteList.value.findIndex(
-          (f) => f.id === groupSpriteData.id
-        );
-        activeSpriteList.value.splice(bIndex, 1);
-        console.log(aIndex, bIndex, "k");
-      } else {
-        const newBoundingBoxList = groupSpriteData.children.map((m) => {
-          return {
-            ...m.boundingBox,
-            x: m.boundingBox.x + groupSpriteData.boundingBox.x,
-            y: m.boundingBox.y + groupSpriteData.boundingBox.y,
-          };
-        });
-
-        console.log(newBoundingBoxList, "newBoundingBoxList");
-        const newBoundingBox = getWrapperBoxInfo(newBoundingBoxList);
-        console.log(newBoundingBox, "newBoundingBox");
-
-        groupSpriteData.boundingBox = newBoundingBox;
-        groupSpriteData.children.forEach((f) => {
-          f.boundingBox.x -= newBoundingBox.x;
-          f.boundingBox.y -= newBoundingBox.y;
-        });
-
-        console.log(groupSpriteData, "groupSpriteData");
-      }
-
-      spriteList.push(...filter);
-      activeSpriteList.value.push(...filter);
-    }
+    // 过滤出组中第一层 是组和不是组的数据
+    const filterList = fixGroupChildren.filter(
+      (f: ISprite) => f.type !== SPRITE_NAME.GROUP
+    );
+    const filterGroupList = fixGroupChildren.filter(
+      (f: ISprite) => f.type === SPRITE_NAME.GROUP
+    );
+    const newList = [...filterList, ...filterGroupList];
+    const delIndex = spriteList.value.findIndex((f) => f.id === group.id);
+    spriteList.value.splice(delIndex, 1);
+    spriteList.value.push(...newList);
+    activeSpriteList.value.push(...newList);
   }
 }
 
@@ -379,6 +328,11 @@ body {
   border: 1px solid #398cfe;
   list-style: none;
   margin-right: 2px;
+  cursor: grab;
+}
+
+.li:active {
+  cursor: grabbing;
 }
 
 .content {
