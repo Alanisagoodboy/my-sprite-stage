@@ -1,3 +1,4 @@
+import { ICoordinate } from "./../components/meta-data/types";
 import {
   IBoundingBox,
   ICoordinate,
@@ -434,8 +435,7 @@ export function getSelectList({ id, activeList, allList }: any) {
     if (findInAll) {
       target = [findInAll];
     }
-    console.log(findInAll, 'findInAll');
-    
+    console.log(findInAll, "findInAll");
   }
 
   return {
@@ -450,29 +450,43 @@ export function getSelectList({ id, activeList, allList }: any) {
  * @param id
  * @returns
  */
-function findRootIdItem(treeArr, id) {  
-  let currentLevel = -1;  
-  for (let i = 0; i < treeArr.length; i++) {  
-      const current = treeArr[i];  
-      // 如果找到id并且是第一级，返回当前节点  
-      if (current.id === id && currentLevel === -1) {  
-          return current;  
-      }  
-      // 如果当前级不是第一级或者没有找到，在子级中查找  
-      if (current.children && current.children.length > 0) {  
-          const result = findRootIdItem(current.children, id);  
-          if (result) {  
-              // 如果找到的id是在子级中，将当前级数加1，并返回当前节点的父节点  
-              if (currentLevel === -1) {  
-                  currentLevel = i;  
-              }  
-              return treeArr[currentLevel];  
-          }  
-      }  
-  }  
-  // 如果没有找到，返回null  
-  return null;  
-}  
+function findRootIdItem(treeArr: ISprite[], id: string) {
+  let currentLevel = -1;
+  for (let i = 0; i < treeArr.length; i++) {
+    const current = treeArr[i];
+    // 如果找到id并且是第一级，返回当前节点
+    if (current.id === id && currentLevel === -1) {
+      return current;
+    }
+    // 如果当前级不是第一级或者没有找到，在子级中查找
+    if (current.children && current.children.length > 0) {
+      const result = findRootIdItem(current.children, id);
+      if (result) {
+        // 如果找到的id是在子级中，将当前级数加1，并返回当前节点的父节点
+        if (currentLevel === -1) {
+          currentLevel = i;
+        }
+        return treeArr[currentLevel];
+      }
+    }
+  }
+  // 如果没有找到，返回null
+  return null;
+}
+
+/**
+ *
+ * @param el 舞台dom
+ * @param point 鼠标位置
+ * @returns 在舞台上的坐标
+ */
+export function getCoordinateInStage(el: HTMLElement, point: ICoordinate) {
+  const rect = el.getBoundingClientRect();
+  return {
+    x: point.x - rect.x,
+    y: point.y - rect.y,
+  };
+}
 
 function getLength(x: number, y: number): number {
   return Math.sqrt(x * x + y * y);

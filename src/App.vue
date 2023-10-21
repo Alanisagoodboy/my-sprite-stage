@@ -2,17 +2,6 @@
   <div class="editor-container">
     <div class="header">
       <div class="header-bar">
-        <ul class="ul" @dragstart="handleDragStart">
-          <li
-            class="li"
-            v-for="(item, index) of componentList"
-            draggable
-            :data-index="index"
-          >
-            {{ item.title }}
-          </li>
-        </ul>
-
         <button @click="handleGroup">组合</button>
         <button @click="handleCancelGroup">解组</button>
       </div>
@@ -20,51 +9,69 @@
     <div class="content">
       <div class="left"></div>
       <div class="center">
-        <Stage :width="stage.width" :height="stage.height">
-          <!-- 网格线 -->
-          <GridLines
+        <ul class="ul" @dragstart="handleDragStart">
+          <li
+            class="li"
+            v-for="item of componentList"
+            :draggable="true"
+            :data-index="item.name"
+          >
+            {{ item.title }}
+          </li>
+        </ul>
+        <div>
+          <Stage
+            ref="stageRef"
             :width="stage.width"
             :height="stage.height"
-            :spacing="50"
-          ></GridLines>
+            @drop="handleDrop"
+            @dragover="handleDragOver"
+          >
+            <!-- 网格线 -->
+            <GridLines
+              :width="stage.width"
+              :height="stage.height"
+              :spacing="50"
+            ></GridLines>
 
-          <!-- 精灵树渲染 -->
-          <SpriteTree
-            :spriteList="spriteList"
-            :registerSpriteMetaMap="registerSpriteMetaMap"
-          ></SpriteTree>
+            <!-- 精灵树渲染 -->
+            <SpriteTree
+              :spriteList="spriteList"
+              :registerSpriteMetaMap="registerSpriteMetaMap"
+            ></SpriteTree>
 
-          <!-- 辅助线 -->
-          <AuxiliaryLine :lineList="auxiliaryLineList" />
+            <!-- 辅助线 -->
+            <AuxiliaryLine :lineList="auxiliaryLineList" />
 
-          <!-- 活跃的精灵容器：提供移动旋转缩放选中的能力 -->
-          <ActiveSpritesContainer
-            v-show="activeSpriteList.length"
-            :stageSize="{ width: stage.width, height: stage.height }"
-            :activeSpriteList="activeSpriteList"
-            :spriteList="spriteList"
-            :registerSpriteMetaMap="registerSpriteMetaMap"
-            @move="move"
-            @rotate="rotate"
-            @resize="resize"
-            @select="select"
-          />
+            <!-- 活跃的精灵容器：提供移动旋转缩放选中的能力 -->
+            <ActiveSpritesContainer
+              v-show="activeSpriteList.length"
+              :stageSize="{ width: stage.width, height: stage.height }"
+              :activeSpriteList="activeSpriteList"
+              :spriteList="spriteList"
+              :registerSpriteMetaMap="registerSpriteMetaMap"
+              @move="move"
+              @rotate="rotate"
+              @resize="resize"
+              @select="select"
+            />
 
-          <!-- 锚点渲染器: 为线条或者部分图形增加辅助功能 -->
-          <AnchorPoints
-            :activeSpriteList="activeSpriteList"
-            @select="select"
-            @anchor-point-move="handleAnchorPointMove"
-          />
+            <!-- 锚点渲染器: 为线条或者部分图形增加辅助功能 -->
+            <AnchorPoints
+              :activeSpriteList="activeSpriteList"
+              @select="select"
+              @anchor-point-move="handleAnchorPointMove"
+            />
 
-          <!-- 工具栏渲染器 -->
-          <Toolbar :activeSpriteList="activeSpriteList"></Toolbar>
-          <!-- 选框: 用于多选 -->
-          <selectArea
-            :spriteList="spriteList"
-            @select-area-move="handleSelectAreaMove"
-          />
-        </Stage>
+            <!-- 工具栏渲染器 -->
+            <Toolbar :activeSpriteList="activeSpriteList"></Toolbar>
+            <!-- 选框: 用于多选 -->
+            <selectArea
+              :spriteList="spriteList"
+              @select-area-move="handleSelectAreaMove"
+            />
+          </Stage>
+        </div>
       </div>
       <div class="right"></div>
     </div>
@@ -85,11 +92,15 @@ import { ref, shallowRef, provide, reactive } from "vue";
 
 import { default_sprite_data } from "./components/meta-data/index";
 
+// import { getCoordinateInStage } from "../../"
+
 import {
+  ICoordinate,
   ISprite,
   ISpriteMeta,
   SPRITE_NAME,
 } from "./components/meta-data/types";
+import { getCoordinateInStage } from "./utils";
 
 const componentList = Object.values(default_sprite_data).map((m) => {
   return {
@@ -103,6 +114,8 @@ const stage = reactive({
   width: 800,
   height: 600,
 });
+
+const stageRef = ref<InstanceType<typeof Stage> | null>(null);
 // 精灵列表
 const spriteList = ref<ISprite[]>([]);
 // 活跃（被选中）状态的精灵列表
@@ -129,30 +142,57 @@ function registerSprite(spriteMeta: ISpriteMeta) {
   registerSpriteMetaMap.value[spriteMeta.type] = spriteMeta;
 }
 
-function handleDragStart (e: DragEvent) {
-  if (e instanceof HTMLElement) {
-    e.dataTransfer.setData('index', e.target.dataset.index)
-  }
+// 选取拖拽精灵
+function handleDragStart(e: DragEvent) {
+  // if (e instanceof HTMLElement) {
+  e.dataTransfer.setData("index", e.target.dataset.index);
+  // }
+}
 
+function handleDragOver(e: DragEvent) {
+  e.preventDefault();
+}
+
+// 放入精灵到舞台
+function handleDrop(e: DragEvent) {
+  e.preventDefault();
+  e.stopPropagation();
+  console.log(e, "e.dataTransfer");
+
+  const name = e.dataTransfer.getData("index") as SPRITE_NAME;
+  console.log(name, "kkk");
+
+  addSpriteToStage({
+    name,
+    point: {
+      x: e.clientX,
+      y: e.clientY,
+    },
+  });
 }
 
 /**
  * 添加精灵到画布
  * @param {ISprite | ISprite[]} sprite
  */
-function addSpriteToStage({ name }: { name: SPRITE_NAME }) {
+function addSpriteToStage({
+  name,
+  point,
+}: {
+  name: SPRITE_NAME;
+  point: ICoordinate;
+}) {
   const spriteMeta = default_sprite_data[name];
-  console.log(spriteMeta, "spriteMeta");
-
   registerSprite(spriteMeta);
-
   const sprite = spriteMeta.createInitData();
-  // if (Array.isArray(sprite)) {
-  //   // spriteList.push(...sprite);
-  // } else {
+  const _point = getCoordinateInStage(
+    stageRef.value!.svgRef as HTMLElement,
+    point
+  );
+  sprite.boundingBox.x = _point.x;
+  sprite.boundingBox.y = _point.y;
   spriteList.value.push(sprite);
   activeSpriteList.value = [sprite];
-  // }
 }
 
 /**
@@ -321,11 +361,20 @@ body {
 }
 
 .ul {
-  display: inline-flex;
-  align-items: center;
+  /* display: inline-flex; */
+  /* align-items: center; */
+
+  user-select: none;
+
+  position: absolute;
+  background-color: #fff;
+  border-radius: 8px;
+
+  left: 30px;
 }
 .li {
-  border: 1px solid #398cfe;
+  height: 30px;
+  line-height: 30px;
   list-style: none;
   margin-right: 2px;
   cursor: grab;
@@ -346,17 +395,28 @@ body {
   display: flex;
   justify-content: center;
   align-items: center;
+
+  position: relative;
 }
 
 .left {
-  /* background-color: aqua; */
+  background-color: aqua;
   width: 300px;
   height: 100%;
 }
 
 .right {
-  /* background-color: bisque; */
+  background-color: bisque;
   width: 300px;
   height: 100%;
 }
+
+/* rect {  
+  animation: draw 3s infinite;  
+}  
+@keyframes draw {  
+  0% { stroke-dasharray: 0, 100; }  
+  50% { stroke-dasharray: 50, 50; }  
+  100% { stroke-dasharray: 100, 100; }  
+}   */
 </style>

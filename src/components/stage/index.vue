@@ -13,6 +13,7 @@
 </template>
 <script setup lang="ts">
 import { ref, provide } from "vue";
+
 defineOptions({
   name: "stage-page",
 });
@@ -24,6 +25,7 @@ defineProps({
 const svgRef = ref<HTMLElement | null>(null);
 
 provide("svgRef", svgRef);
+defineExpose({ svgRef });
 </script>
 
 <style lang="scss" scoped></style>
