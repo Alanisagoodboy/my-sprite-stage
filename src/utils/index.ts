@@ -1,4 +1,4 @@
-import { ICoordinate } from "./../components/meta-data/types";
+import { ICoordinate, IStage } from "./../components/meta-data/types";
 import {
   IBoundingBox,
   ICoordinate,
@@ -253,12 +253,14 @@ function getPoint(rect: IBox, center: IPoint, position: HANDLER): IPoint {
  * 计算形变，不考虑旋转
  */
 export function calcResizeBoxInfoWithoutRotate({
+  stage,
   handleType,
   rect,
   needChangeRect,
   startEv,
   moveEv,
 }: {
+  stage: IStage,
   handleType: HANDLER;
   rect: IBoundingBox;
   needChangeRect: IBoundingBox[];
@@ -267,8 +269,8 @@ export function calcResizeBoxInfoWithoutRotate({
 }) {
   let boxInfo = {
     ...rect,
-    dx: moveEv.clientX - startEv.clientX,
-    dy: moveEv.clientY - startEv.clientY,
+    dx: (moveEv.clientX - startEv.clientX) / stage.scale,
+    dy: (moveEv.clientY - startEv.clientY) / stage.scale,
   };
 
   switch (handleType) {
@@ -342,7 +344,7 @@ export function calcResizeBoxInfoWithoutRotate({
  * @param rect 外包裹矩形
  * @param needChangeRect 需要改变的矩形信息
  * @param staticRectList 静止不动的矩形信息
- * @param stageSize 舞台尺寸
+ * @param stage 舞台尺寸
  * @param startEv 鼠标按下时候的事件
  * @param moveEv 鼠标移动时候的事件
  */
@@ -350,20 +352,20 @@ export function calcMoveBoxInfoWithoutRotate({
   rect,
   needChangeRect,
   staticRectList,
-  stageSize,
+  stage,
   startEv,
   moveEv,
 }: {
   rect: IBoundingBox;
   needChangeRect: IBoundingBox[];
   staticRectList: IBoundingBox[];
-  stageSize: ISize;
+  stage: IStage;
   startEv: MouseEvent;
   moveEv: MouseEvent;
 }) {
   const [moveX, moveY] = [
-    moveEv.clientX - startEv.clientX,
-    moveEv.clientY - startEv.clientY,
+    (moveEv.clientX - startEv.clientX) / stage.scale,
+    (moveEv.clientY - startEv.clientY) / stage.scale,
   ];
 
   // 盒子信息
@@ -381,7 +383,7 @@ export function calcMoveBoxInfoWithoutRotate({
   } = getAuxLine({
     rect: boundingBox,
     inactiveRectList: staticRectList,
-    stageSize,
+    stage,
   });
 
   boundingBox.x += fixDisX;
@@ -478,13 +480,18 @@ function findRootIdItem(treeArr: ISprite[], id: string) {
  *
  * @param el 舞台dom
  * @param point 鼠标位置
+ * @param scale 舞台缩放
  * @returns 在舞台上的坐标
  */
-export function getCoordinateInStage(el: HTMLElement, point: ICoordinate) {
+export function getCoordinateInStage(
+  el: HTMLElement,
+  point: ICoordinate,
+  scale: number
+) {
   const rect = el.getBoundingClientRect();
   return {
-    x: point.x - rect.x,
-    y: point.y - rect.y,
+    x: (point.x - rect.x) / scale,
+    y: (point.y - rect.y) / scale,
   };
 }
 
@@ -926,13 +933,13 @@ function closeTo(a: number, b: number, d = 5): boolean {
  * 计算元素之间靠近时的对其辅助线，以及吸附的修正距离
  * @param rect 选中的矩形区域
  * @param inactiveRectList 未选中的元素bounding列表
- * @param stageSize 舞台/画布大小
+ * @param stage 舞台/画布大小
  * @returns 辅助线数组和吸附定位
  */
 export const getAuxLine = ({
   rect,
   inactiveRectList,
-  stageSize = { width: 0, height: 0 },
+  stage = { width: 0, height: 0, scale: 1 },
 }: any) => {
   // 正在拖拽中的矩形的各个边信息
 
@@ -946,7 +953,10 @@ export const getAuxLine = ({
   const dis = 5;
 
   // 增加一个和舞台同样大小的虚拟元素，用来和舞台对齐
-  const rectList = [...inactiveRectList, { x: 0, y: 0, ...stageSize }];
+  const rectList = [
+    ...inactiveRectList,
+    { x: 0, y: 0, width: stage.width, height: stage.height },
+  ];
 
   let dx = 0;
   let dy = 0;

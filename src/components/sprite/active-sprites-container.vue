@@ -29,6 +29,14 @@
     >
       <circle r="5" stroke="#398cfe" fill="#fff"></circle>
     </g>
+
+    <line
+      :x1="0"
+      :y1="0"
+      :x2="-100"
+      :y2="0"
+      stroke="#000"
+    ></line>
   </g>
 </template>
 
@@ -51,7 +59,7 @@ import {
   // type Ref,
   nextTick,
 } from "vue";
-import { IBoundingBox, ISize, ISprite } from "../meta-data/types";
+import { IBoundingBox, IStage, ISprite } from "../meta-data/types";
 
 import { getWrapperBoxInfo } from "../../utils/index";
 
@@ -68,7 +76,7 @@ const dotSize = 6;
 
 const props = defineProps<{
   // 舞台尺寸
-  stageSize: ISize;
+  stage: IStage;
   // 精灵列表
   spriteList: ISprite[];
   // 活跃的精灵列表
@@ -160,6 +168,7 @@ function onDotMousedown(dotInfo: IDot, e: MouseEvent) {
 
   const onMousemove = (moveEv: MouseEvent) => {
     const box = calcResizeBoxInfoWithoutRotate({
+      stage: props.stage,
       handleType: dotInfo.side,
       rect,
       needChangeRect: downPointActiveList.map((m) => m.boundingBox),
@@ -201,8 +210,6 @@ async function onMousedown(e: MouseEvent) {
   // 查找 id 点击的精灵的id
   const id = spriteDom?.getAttribute("data-sprite-id");
 
-  console.log(id, "jjj");
-
   const selectBox = getSelectList({
     id,
     activeList: props.activeSpriteList,
@@ -226,7 +233,7 @@ async function onMousedown(e: MouseEvent) {
   const onMousemove = (ev: MouseEvent) => {
     const boxInfo = calcMoveBoxInfoWithoutRotate({
       rect: lastDragInfo,
-      stageSize: props.stageSize,
+      stage: props.stage,
       needChangeRect,
       staticRectList,
       startEv: e,
@@ -305,7 +312,6 @@ function onRotateMousedown(e: MouseEvent) {
 // })
 
 // console.log(localList);
-
 </script>
 
 <style lang="scss"></style>

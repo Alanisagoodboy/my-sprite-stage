@@ -62,6 +62,13 @@ export interface ISpriteAttrsLike {
 //   initAttrs?: ISpriteAttrs;
 // }
 
+// 舞台
+export interface IStage {
+  width: number; // 宽
+  height: number; // 高
+  scale: number; // 缩放（0~1）
+}
+
 // 精灵
 export interface ISprite<IProps = any> {
   id: string; // 精灵id

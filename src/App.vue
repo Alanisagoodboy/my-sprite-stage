@@ -7,7 +7,10 @@
       </div>
     </div>
     <div class="content">
-      <div class="left"></div>
+      <div class="left">
+        <div style="height: 50%; background-color: aqua" v-split.bottom>2</div>
+        <div style="height: 50%; background-color: bisque">1</div>
+      </div>
       <div class="center">
         <ul class="ul" @dragstart="handleDragStart">
           <li
@@ -22,8 +25,8 @@
         <div>
           <Stage
             ref="stageRef"
-            :width="stage.width"
-            :height="stage.height"
+            v-bind="stage"
+            @stage-scale="handleScale"
             @drop="handleDrop"
             @dragover="handleDragOver"
           >
@@ -46,7 +49,7 @@
             <!-- 活跃的精灵容器：提供移动旋转缩放选中的能力 -->
             <ActiveSpritesContainer
               v-show="activeSpriteList.length"
-              :stageSize="{ width: stage.width, height: stage.height }"
+              :stage="stage"
               :activeSpriteList="activeSpriteList"
               :spriteList="spriteList"
               :registerSpriteMetaMap="registerSpriteMetaMap"
@@ -66,7 +69,8 @@
             <!-- 工具栏渲染器 -->
             <Toolbar :activeSpriteList="activeSpriteList"></Toolbar>
             <!-- 选框: 用于多选 -->
-            <selectArea
+            <SelectArea
+              :stage="stage"
               :spriteList="spriteList"
               @select-area-move="handleSelectAreaMove"
             />
@@ -84,16 +88,19 @@ import SpriteTree from "./components/sprite/sprite-tree.vue";
 import ActiveSpritesContainer from "./components/sprite/active-sprites-container.vue";
 import AnchorPoints from "./components/stage/anchor-point/anchor-points.vue";
 import GridLines from "./components/stage/grid-line.vue";
-import selectArea from "./components/stage/select-area.vue";
+import SelectArea from "./components/stage/select-area.vue";
 import AuxiliaryLine from "./components/stage/auxiliary-line.vue";
 import Toolbar from "./components/sprite/toolbar-sprite.vue";
 
 import { ref, shallowRef, provide, reactive } from "vue";
 
+import { resize as x } from "./directive";
+
 import { default_sprite_data } from "./components/meta-data/index";
 
 // import { getCoordinateInStage } from "../../"
 
+const vSplit = x;
 import {
   ICoordinate,
   ISprite,
@@ -113,6 +120,7 @@ const componentList = Object.values(default_sprite_data).map((m) => {
 const stage = reactive({
   width: 800,
   height: 600,
+  scale: 1.2,
 });
 
 const stageRef = ref<InstanceType<typeof Stage> | null>(null);
@@ -187,7 +195,8 @@ function addSpriteToStage({
   const sprite = spriteMeta.createInitData();
   const _point = getCoordinateInStage(
     stageRef.value!.svgRef as HTMLElement,
-    point
+    point,
+    stage.scale
   );
   sprite.boundingBox.x = _point.x;
   sprite.boundingBox.y = _point.y;
@@ -322,6 +331,12 @@ function handleCancelGroup() {
   }
 }
 
+function handleScale(scale: number) {
+  console.log(scale, "scale");
+
+  stage.scale = scale;
+}
+
 // 向后代注入当前注册的精灵信息
 provide("registerSpriteMetaMap", registerSpriteMetaMap);
 
@@ -346,6 +361,7 @@ body {
   width: 100%;
   height: 100%;
   background-color: #f0f2f5;
+  overflow: hidden;
 }
 
 .header {
