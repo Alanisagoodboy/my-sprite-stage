@@ -1,11 +1,11 @@
 <template>
-  <!-- <line
+  <line
     v-for="(line, index) of lineList"
     :key="index"
     v-bind="line"
     stroke="#0067ed"
     strokeDasharray="4 4"
-  ></line> -->
+  ></line>
 </template>
 
 <script setup lang="ts">

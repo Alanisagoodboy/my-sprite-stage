@@ -9,7 +9,16 @@
     <div class="content">
       <div class="left">
         <div style="height: 50%; background-color: aqua" v-split.bottom>2</div>
-        <div style="height: 50%; background-color: bisque">1</div>
+        <div style="height: 50%; background-color: bisque">
+          <p>精灵大纲</p>
+          <el-tree
+            :data="spriteList"
+            :props="{
+              label: 'id',
+              children: 'children',
+            }"
+          ></el-tree>
+        </div>
       </div>
       <div class="center">
         <ul class="ul" @dragstart="handleDragStart">
@@ -22,7 +31,7 @@
             {{ item.title }}
           </li>
         </ul>
-        <div>
+        <div class="center-content">
           <Stage
             ref="stageRef"
             v-bind="stage"
@@ -44,10 +53,11 @@
             ></SpriteTree>
 
             <!-- 辅助线 -->
-            <AuxiliaryLine :lineList="auxiliaryLineList" />
+            <!-- <AuxiliaryLine :lineList="auxiliaryLineList" /> -->
 
             <!-- 活跃的精灵容器：提供移动旋转缩放选中的能力 -->
             <ActiveSpritesContainer
+              :auxiliary-line-list="auxiliaryLineList"
               v-show="activeSpriteList.length"
               :stage="stage"
               :activeSpriteList="activeSpriteList"
@@ -67,7 +77,7 @@
             />
 
             <!-- 工具栏渲染器 -->
-            <Toolbar :activeSpriteList="activeSpriteList"></Toolbar>
+            <!-- <Toolbar :activeSpriteList="activeSpriteList"></Toolbar> -->
             <!-- 选框: 用于多选 -->
             <SelectArea
               :stage="stage"
@@ -118,9 +128,9 @@ const componentList = Object.values(default_sprite_data).map((m) => {
 
 // 舞台信息
 const stage = reactive({
-  width: 800,
-  height: 600,
-  scale: 1.2,
+  width: 1920,
+  height: 1080,
+  scale: 1,
 });
 
 const stageRef = ref<InstanceType<typeof Stage> | null>(null);
@@ -361,7 +371,7 @@ body {
   width: 100%;
   height: 100%;
   background-color: #f0f2f5;
-  overflow: hidden;
+  overflow: auto;
 }
 
 .header {
@@ -383,10 +393,13 @@ body {
   user-select: none;
 
   position: absolute;
+  z-index: 1;
   background-color: #fff;
   border-radius: 8px;
 
   left: 30px;
+
+  margin: auto;
 }
 .li {
   height: 30px;
@@ -408,11 +421,26 @@ body {
 .center {
   flex: 1;
 
-  display: flex;
+  /* display: flex;
   justify-content: center;
-  align-items: center;
+  align-items: center; */
 
   position: relative;
+
+  overflow: hidden;
+
+  /* margin: auto; */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.center-content {
+  /* height: 100%;
+  width: 100%; */
+  /* overflow: auto; */
+  /* margin: auto; */
+
 }
 
 .left {

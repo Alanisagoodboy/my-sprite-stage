@@ -65,6 +65,7 @@ onUnmounted(() => {
 });
 
 function handleDown(e: MouseEvent) {
+  if (e.ctrlKey) return;
   const spriteType = (e.target as HTMLElement).getAttribute("data-sprite-type");
   console.log(spriteType, "spriteType");
 

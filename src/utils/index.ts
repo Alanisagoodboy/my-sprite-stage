@@ -371,7 +371,7 @@ export function calcMoveBoxInfoWithoutRotate({
   // 盒子信息
   const boundingBox = {
     x: rect.x + moveX,
-    y: rect.x + moveY,
+    y: rect.y + moveY,
     width: rect.width,
     height: rect.height,
   };

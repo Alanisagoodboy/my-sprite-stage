@@ -22,6 +22,10 @@
       @mousedown="onDotMousedown(dot, $event)"
     />
 
+    <g v-show="isMoving">
+      <line v-for="line of auxiliaryLine" v-bind="line" stroke="#000" stroke-dasharray="5"></line>
+    </g>
+
     <g
       v-if="isShowRotate"
       @mousedown="onRotateMousedown"
@@ -29,14 +33,6 @@
     >
       <circle r="5" stroke="#398cfe" fill="#fff"></circle>
     </g>
-
-    <line
-      :x1="0"
-      :y1="0"
-      :x2="-100"
-      :y2="0"
-      stroke="#000"
-    ></line>
   </g>
 </template>
 
@@ -74,6 +70,13 @@ onUnmounted(() => {
 
 const dotSize = 6;
 
+// 是否正在拖拽
+const isMoving = ref(false)
+
+function setIsMoving (val: boolean) {
+  isMoving.value = val
+}
+
 const props = defineProps<{
   // 舞台尺寸
   stage: IStage;
@@ -83,6 +86,8 @@ const props = defineProps<{
   activeSpriteList: ISprite[];
   // 已经注册的精灵元数据map
   registerSpriteMetaMap: Record<string, any>;
+  // 辅助线
+  auxiliaryLineList: any[];
 }>();
 const emit = defineEmits(["move", "resize", "rotate", "select"]);
 
@@ -100,6 +105,21 @@ const dotList: IDot[] = [
   { side: HANDLER.BL, cursor: "sw-resize" },
   { side: HANDLER.BR, cursor: "se-resize" },
 ];
+
+const auxiliaryLine = computed(() => {
+  return props.auxiliaryLineList.map((m) => {
+    return {
+      x1: m.x1 - dragData.value.x,
+      x2: m.x2 - dragData.value.x,
+      y1: m.y1 - dragData.value.y,
+      y2: m.y2 - dragData.value.y,
+    };
+  });
+});
+
+// watchEffect(() => {
+//   console.log(auxiliaryLine.value, "auxiliaryLine");
+// });
 
 // 形变点数组渲染
 const resizePoints = computed(() => {
@@ -156,6 +176,8 @@ function onDotMousedown(dotInfo: IDot, e: MouseEvent) {
   e.stopPropagation();
   e.preventDefault();
 
+ 
+
   // 1.按下去的一瞬间 缓存当前的盒子信息
   const { width, height, x, y } = dragData.value;
 
@@ -204,6 +226,7 @@ function getActiveBoxInfo() {
  * 鼠标按下事件
  */
 async function onMousedown(e: MouseEvent) {
+  setIsMoving(false)
   const spriteDom = findParentByClass(e.target, "sprite-container");
   if (!spriteDom) return;
 
@@ -231,6 +254,7 @@ async function onMousedown(e: MouseEvent) {
   isMousedown.value = true;
 
   const onMousemove = (ev: MouseEvent) => {
+    setIsMoving(true)
     const boxInfo = calcMoveBoxInfoWithoutRotate({
       rect: lastDragInfo,
       stage: props.stage,
@@ -243,7 +267,7 @@ async function onMousedown(e: MouseEvent) {
   };
 
   const onMouseup = (_e: MouseEvent) => {
-    isMousedown.value = false;
+    setIsMoving(false)
     // 移除document事件
     document.removeEventListener("pointermove", onMousemove, false);
     document.removeEventListener("pointerup", onMouseup, false);
