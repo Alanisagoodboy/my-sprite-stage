@@ -44,21 +44,18 @@
               :width="stage.width"
               :height="stage.height"
               :spacing="50"
-            ></GridLines>
+            />
 
             <!-- 精灵树渲染 -->
             <SpriteTree
               :spriteList="spriteList"
               :registerSpriteMetaMap="registerSpriteMetaMap"
-            ></SpriteTree>
-
-            <!-- 辅助线 -->
-            <!-- <AuxiliaryLine :lineList="auxiliaryLineList" /> -->
+            />
 
             <!-- 活跃的精灵容器：提供移动旋转缩放选中的能力 -->
             <ActiveSpritesContainer
-              :auxiliary-line-list="auxiliaryLineList"
               v-show="activeSpriteList.length"
+              :auxiliary-line-list="auxiliaryLineList"
               :stage="stage"
               :activeSpriteList="activeSpriteList"
               :spriteList="spriteList"
@@ -71,6 +68,7 @@
 
             <!-- 锚点渲染器: 为线条或者部分图形增加辅助功能 -->
             <AnchorPoints
+              :stage="stage"
               :activeSpriteList="activeSpriteList"
               @select="select"
               @anchor-point-move="handleAnchorPointMove"
@@ -87,7 +85,14 @@
           </Stage>
         </div>
       </div>
-      <div class="right"></div>
+      <div class="right" v-if="1">
+        <!-- 属性面板渲染器 -->
+        <AttrsPanel
+          :stage="stage"
+          :activeSpriteList="activeSpriteList"
+          @updateProps="updateProps"
+        />
+      </div>
     </div>
   </div>
 </template>
@@ -99,15 +104,16 @@ import ActiveSpritesContainer from "./components/sprite/active-sprites-container
 import AnchorPoints from "./components/stage/anchor-point/anchor-points.vue";
 import GridLines from "./components/stage/grid-line.vue";
 import SelectArea from "./components/stage/select-area.vue";
-import AuxiliaryLine from "./components/stage/auxiliary-line.vue";
-import Toolbar from "./components/sprite/toolbar-sprite.vue";
+import AttrsPanel from "./components/attrs-panel/index.vue";
+// import AuxiliaryLine from "./components/stage/auxiliary-line.vue";
+// import Toolbar from "./components/sprite/toolbar-sprite.vue";
 
 import { ref, shallowRef, provide, reactive } from "vue";
 
 import { resize as x } from "./directive";
 
 import { default_sprite_data } from "./components/meta-data/index";
-
+import _ from "lodash";
 // import { getCoordinateInStage } from "../../"
 
 const vSplit = x;
@@ -162,9 +168,9 @@ function registerSprite(spriteMeta: ISpriteMeta) {
 
 // 选取拖拽精灵
 function handleDragStart(e: DragEvent) {
-  // if (e instanceof HTMLElement) {
-  e.dataTransfer.setData("index", e.target.dataset.index);
-  // }
+  if (e !== null && e.target instanceof HTMLElement) {
+    e.dataTransfer!.setData("index", e.target.dataset.index!);
+  }
 }
 
 function handleDragOver(e: DragEvent) {
@@ -177,7 +183,8 @@ function handleDrop(e: DragEvent) {
   e.stopPropagation();
   console.log(e, "e.dataTransfer");
 
-  const name = e.dataTransfer.getData("index") as SPRITE_NAME;
+  // if (e !== null && typeof e.dataTransfer === "dataTransfer") {
+  const name = e.dataTransfer!.getData("index") as SPRITE_NAME;
   console.log(name, "kkk");
 
   addSpriteToStage({
@@ -188,6 +195,7 @@ function handleDrop(e: DragEvent) {
     },
   });
 }
+// }
 
 /**
  * 添加精灵到画布
@@ -238,6 +246,20 @@ function rotate(info: any) {
 
 function resize(info: any) {
   updateSpriteList(info);
+}
+
+// 更新精灵属性
+function updateProps({
+  id,
+  path,
+  value,
+}: {
+  id: string;
+  path: "string";
+  value: any;
+}) {
+  const sprite = spriteList.value.find((f) => f.id === id);
+  _.set(sprite, path, value, "not-found");
 }
 
 // 选中精灵 时 根据id找到当前点击的精灵的信息
@@ -440,7 +462,6 @@ body {
   width: 100%; */
   /* overflow: auto; */
   /* margin: auto; */
-
 }
 
 .left {

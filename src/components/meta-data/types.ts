@@ -1,4 +1,4 @@
-import { CSSProperties, Component } from "vue";
+import { Component } from "vue";
 export enum SPRITE_NAME {
   TEXT = "TextSprite", // 文本
   RECT = "RectSprite", // 矩形
@@ -23,44 +23,10 @@ export interface ICoordinate {
 export interface IBoundingBox extends ISize, ICoordinate {}
 
 // 包含移动距离的盒子信息
-export interface IBoxMove extends IBoundingBox{
+export interface IBoxMove extends IBoundingBox {
   dx: number;
-  dy: number
+  dy: number;
 }
-// // 高宽和定位坐标
-// export interface ISizeCoordinate {
-//   width: number;
-//   height: number;
-//   x: number;
-//   y: number;
-// }
-
-// 精灵属性
-export interface ISpriteAttrs {
-  size: ISize;
-  coordinate: ICoordinate;
-  angle: number;
-  style?: CSSProperties;
-  editing?: boolean;
-  creating?: boolean;
-}
-
-// 精灵属性
-export interface ISpriteAttrsLike {
-  size?: ISize;
-  coordinate?: ICoordinate;
-  angle?: number;
-  style?: CSSProperties;
-  editing?: boolean;
-  creating?: boolean;
-}
-
-// export interface ISpriteMeta<IProps = any> {
-//   type: SPRITE_NAME;
-//   spriteComponent: Component
-//   initProps?: IProps;
-//   initAttrs?: ISpriteAttrs;
-// }
 
 // 舞台
 export interface IStage {
@@ -75,7 +41,7 @@ export interface ISprite<IProps = any> {
   type: SPRITE_NAME; // 精灵名字/类型
   attrs: IProps; // 属性
   boundingBox: IBoundingBox;
-  children?: Array<ISprite<IProps>> ;
+  children?: Array<ISprite<IProps>>;
 }
 
 // 默认图形props
@@ -109,6 +75,7 @@ export interface ISpriteMeta {
   isShowRotateHandle: boolean; // 是否可以旋转
   anchors?: Record<string, any>; // 锚点
   ports?: Record<string, any>; // 连线桩
+  attrsConfig?: Record<string, any>; // 属性配置
 }
 
 export interface IPort {

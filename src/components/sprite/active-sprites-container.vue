@@ -23,7 +23,12 @@
     />
 
     <g v-show="isMoving">
-      <line v-for="line of auxiliaryLine" v-bind="line" stroke="#000" stroke-dasharray="5"></line>
+      <line
+        v-for="line of auxiliaryLine"
+        v-bind="line"
+        stroke="#000"
+        stroke-dasharray="5"
+      ></line>
     </g>
 
     <g
@@ -71,10 +76,10 @@ onUnmounted(() => {
 const dotSize = 6;
 
 // 是否正在拖拽
-const isMoving = ref(false)
+const isMoving = ref(false);
 
-function setIsMoving (val: boolean) {
-  isMoving.value = val
+function setIsMoving(val: boolean) {
+  isMoving.value = val;
 }
 
 const props = defineProps<{
@@ -175,31 +180,37 @@ const transform = computed(() => {
 function onDotMousedown(dotInfo: IDot, e: MouseEvent) {
   e.stopPropagation();
   e.preventDefault();
-
- 
+  setIsMoving(false);
 
   // 1.按下去的一瞬间 缓存当前的盒子信息
-  const { width, height, x, y } = dragData.value;
+  const lastDragInfo = getActiveBoxInfo();
 
-  const rect = { width, height, x, y };
-
-  const downPointActiveList: ISprite[] = JSON.parse(
+  const needChangeRect: IBoundingBox[] = JSON.parse(
     JSON.stringify(props.activeSpriteList)
-  );
+  ).map((m: ISprite) => m.boundingBox);
+
+  const staticRectList = props.spriteList
+    .filter((f) => {
+      return props.activeSpriteList.find((item) => item.id !== f.id);
+    })
+    .map((m) => m.boundingBox);
   // 5.计算中心点的坐标
 
   const onMousemove = (moveEv: MouseEvent) => {
-    const box = calcResizeBoxInfoWithoutRotate({
+    setIsMoving(true);
+    const boxInfo = calcResizeBoxInfoWithoutRotate({
       stage: props.stage,
       handleType: dotInfo.side,
-      rect,
-      needChangeRect: downPointActiveList.map((m) => m.boundingBox),
+      rect: lastDragInfo,
+      needChangeRect,
+      staticRectList,
       startEv: e,
       moveEv: moveEv,
     });
-    emit("resize", { ...box, downPointActiveList }, dotInfo.side);
+    emit("resize", { ...boxInfo });
   };
   const onMouseup = (_e: MouseEvent) => {
+    setIsMoving(false);
     document.removeEventListener("pointermove", onMousemove);
     document.removeEventListener("pointerup", onMouseup);
   };
@@ -226,7 +237,7 @@ function getActiveBoxInfo() {
  * 鼠标按下事件
  */
 async function onMousedown(e: MouseEvent) {
-  setIsMoving(false)
+  setIsMoving(false);
   const spriteDom = findParentByClass(e.target, "sprite-container");
   if (!spriteDom) return;
 
@@ -254,7 +265,7 @@ async function onMousedown(e: MouseEvent) {
   isMousedown.value = true;
 
   const onMousemove = (ev: MouseEvent) => {
-    setIsMoving(true)
+    setIsMoving(true);
     const boxInfo = calcMoveBoxInfoWithoutRotate({
       rect: lastDragInfo,
       stage: props.stage,
@@ -267,7 +278,7 @@ async function onMousedown(e: MouseEvent) {
   };
 
   const onMouseup = (_e: MouseEvent) => {
-    setIsMoving(false)
+    setIsMoving(false);
     // 移除document事件
     document.removeEventListener("pointermove", onMousemove, false);
     document.removeEventListener("pointerup", onMouseup, false);

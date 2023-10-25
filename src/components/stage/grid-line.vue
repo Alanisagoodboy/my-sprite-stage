@@ -12,7 +12,7 @@ const props = defineProps({
 });
 
 const style = {
-  stroke: "#eee",
+  stroke: "#777",
   strokeWidth: 1,
   strokeDasharray: "none",
 };
@@ -54,7 +54,7 @@ function getLines(width: number, height: number, spacing: number) {
     x2: arr[2],
     y2: height,
   }));
-  console.log(xLines, yLines, "xLines, yLines ");
+  // console.log(xLines, yLines, "xLines, yLines ");
 
   return { xLines, yLines };
 }

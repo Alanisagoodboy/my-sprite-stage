@@ -7,7 +7,6 @@
     :width="width"
     style="outline: 1px solid #398cfe"
     ref="svgRef"
-    :style="{ background: '#000' }"
     :transform="`scale(${scale}) translate(${d.dx}, ${d.dy})`"
     @mousewheel="mousewheel"
     @mousedown="mousedown"

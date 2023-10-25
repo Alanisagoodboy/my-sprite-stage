@@ -6,7 +6,7 @@ import { ISpriteMeta, SPRITE_NAME } from "../types";
 export const groupSpriteMeta: ISpriteMeta = {
   title: "组合",
   type: SPRITE_NAME.GROUP,
-  createInitData(boundingList: IBoundingBox) {
+  createInitData(boundingList: IBoundingBox[]) {
     const boundingBox = getWrapperBoxInfo(boundingList);
     console.log(boundingBox, 'boundingBox');
     

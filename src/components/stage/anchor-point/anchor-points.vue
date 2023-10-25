@@ -19,10 +19,12 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
-import { ICoordinate, ISprite } from "../../meta-data/types";
+import { ICoordinate, ISprite, IStage } from "../../meta-data/types";
 import { default_sprite_data } from "../../meta-data";
 
 const p = defineProps<{
+  // 画布数据
+  stage: IStage;
   // 活跃的精灵列表
   activeSpriteList: ISprite[];
 }>();
@@ -88,7 +90,6 @@ let recordPointInfo: Record<string, any> = {
     this.downPoint.y = y;
   },
 
-
   // 记录当前操作的数据哪个精灵锚点的第几个索引
   setIndex(index: number) {
     this.index = index;
@@ -115,7 +116,7 @@ function handleDown(
 
   emits("select", activeInfo.sprite.id);
 
-  const { x, y} = activeInfo.sprite.boundingBox;
+  const { x, y } = activeInfo.sprite.boundingBox;
   // 记录操作的是哪个点
   recordPointInfo.setIndex(index);
 
@@ -152,8 +153,8 @@ function handleMove(e: MouseEvent) {
     activeInfo: { sprite },
   } = recordPointInfo;
 
-  const x = e.clientX - downPoint.x + +initPoint.x;
-  const y = e.clientY - downPoint.y + +initPoint.y;
+  const x = (e.clientX - downPoint.x) / p.stage.scale + +initPoint.x;
+  const y = (e.clientY - downPoint.y) / p.stage.scale + +initPoint.y;
 
   // 设置新的锚点坐标
   recordPointInfo.setTargetAnchorPoints(index, { x, y });
