@@ -1,6 +1,14 @@
 <template>
   <g ref="dragRef" class="active-sprites-container" :transform="transform">
     <!-- 这里只能fill: none 防止点击不到下面的精灵 -->
+    <g v-show="isMoving">
+      <line
+        v-for="line of auxiliaryLine"
+        v-bind="line"
+        stroke="#000"
+        stroke-dasharray="5"
+      ></line>
+    </g>
     <rect
       x="0"
       y="0"
@@ -21,15 +29,6 @@
       v-bind="getHandlePoint(dragData, dot.side, dotSize)"
       @mousedown="onDotMousedown(dot, $event)"
     />
-
-    <g v-show="isMoving">
-      <line
-        v-for="line of auxiliaryLine"
-        v-bind="line"
-        stroke="#000"
-        stroke-dasharray="5"
-      ></line>
-    </g>
 
     <g
       v-if="isShowRotate"
@@ -94,7 +93,14 @@ const props = defineProps<{
   // 辅助线
   auxiliaryLineList: any[];
 }>();
-const emit = defineEmits(["move", "resize", "rotate", "select"]);
+const emit = defineEmits([
+  "move",
+  "move-end",
+  "resize",
+  "resize-end",
+  "rotate",
+  "select",
+]);
 
 type IDot = {
   side: HANDLER;
@@ -122,10 +128,6 @@ const auxiliaryLine = computed(() => {
   });
 });
 
-// watchEffect(() => {
-//   console.log(auxiliaryLine.value, "auxiliaryLine");
-// });
-
 // 形变点数组渲染
 const resizePoints = computed(() => {
   if (props.activeSpriteList.length === 1) {
@@ -134,7 +136,6 @@ const resizePoints = computed(() => {
 
     const activeMeta =
       registerSpriteMetaMap[(activeSpriteList[0] as ISprite).type];
-    console.log(activeMeta, "activeMeta");
 
     if (activeMeta.resizePoints === "all") {
       return dotList;
@@ -177,6 +178,8 @@ const transform = computed(() => {
   return `${rotateStr} ${translateStr}`;
 });
 
+let boxInfo = {};
+
 function onDotMousedown(dotInfo: IDot, e: MouseEvent) {
   e.stopPropagation();
   e.preventDefault();
@@ -198,7 +201,7 @@ function onDotMousedown(dotInfo: IDot, e: MouseEvent) {
 
   const onMousemove = (moveEv: MouseEvent) => {
     setIsMoving(true);
-    const boxInfo = calcResizeBoxInfoWithoutRotate({
+    boxInfo = calcResizeBoxInfoWithoutRotate({
       stage: props.stage,
       handleType: dotInfo.side,
       rect: lastDragInfo,
@@ -211,6 +214,7 @@ function onDotMousedown(dotInfo: IDot, e: MouseEvent) {
   };
   const onMouseup = (_e: MouseEvent) => {
     setIsMoving(false);
+    emit("resize-end", { ...boxInfo });
     document.removeEventListener("pointermove", onMousemove);
     document.removeEventListener("pointerup", onMouseup);
   };
@@ -243,13 +247,23 @@ async function onMousedown(e: MouseEvent) {
 
   // 查找 id 点击的精灵的id
   const id = spriteDom?.getAttribute("data-sprite-id");
+  console.log(id, "id");
 
-  const selectBox = getSelectList({
+  const selectSprite = getSelectList({
     id,
     activeList: props.activeSpriteList,
     allList: props.spriteList,
   });
-  emit("select", { ...selectBox });
+  console.log(selectSprite, "selectSprite");
+
+  //代码丑陋, 输入只是点击，有可能会后触发mouseup，导致坐标数据是以前的，所以在计算出选中后吗，立马更新坐标数据
+  boxInfo = selectSprite.boundingBox;
+  emit("select", { ...selectSprite });
+
+  // Object.assign(boxInfo, selectSprite.boundingBox);
+  // 如果不是鼠标左键 return
+  if (e.button !== 0) return;
+
   // 传出事件，再等待新的props
   await nextTick();
   const lastDragInfo = getActiveBoxInfo();
@@ -266,7 +280,7 @@ async function onMousedown(e: MouseEvent) {
 
   const onMousemove = (ev: MouseEvent) => {
     setIsMoving(true);
-    const boxInfo = calcMoveBoxInfoWithoutRotate({
+    boxInfo = calcMoveBoxInfoWithoutRotate({
       rect: lastDragInfo,
       stage: props.stage,
       needChangeRect,
@@ -277,7 +291,8 @@ async function onMousedown(e: MouseEvent) {
     emit("move", { ...boxInfo });
   };
 
-  const onMouseup = (_e: MouseEvent) => {
+  const onMouseup = async (_e: MouseEvent) => {
+    emit("move-end", { ...boxInfo });
     setIsMoving(false);
     // 移除document事件
     document.removeEventListener("pointermove", onMousemove, false);

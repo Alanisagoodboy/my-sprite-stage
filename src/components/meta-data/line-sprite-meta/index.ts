@@ -36,6 +36,7 @@ export const lineSpriteMeta: ISpriteMeta = {
     };
   },
   type: SPRITE_NAME.LINE,
+  icon: new URL("../../../assets/icon/线条.svg", import.meta.url).href,
   // 组件
   component: LineSprite,
   resizePoints: "empty", // 为空代表没有缩放的点

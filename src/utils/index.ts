@@ -403,8 +403,9 @@ export function getSelectList({ id, activeList, allList }: any) {
     if (findInAll) {
       target = [findInAll];
     }
-    console.log(findInAll, "findInAll");
   }
+
+  console.log(target, "target");
 
   return {
     boundingBox: getWrapperBoxInfo(target.map((m) => m.boundingBox)),
@@ -439,6 +440,33 @@ function findRootIdItem(treeArr: ISprite[], id: string) {
     }
   }
   // 如果没有找到，返回null
+  return null;
+}
+
+/**
+ * @desc 查找树状结构数据，找到了返回这一项，没有找到返回null
+ * @param treeList
+ * @param id
+ * @returns
+ */
+function findById(treeList: ISprite, id: string) {
+  // 遍历树中的每个节点
+  for (let i = 0; i < treeList.length; i++) {
+    const node = treeList[i];
+
+    // 如果当前节点的ID与要查找的ID匹配，返回当前节点
+    if (node.id === id) {
+      return node;
+    }
+
+    // 否则，递归查找子节点中是否有匹配的节点
+    const result = findById(node.children, id);
+    if (result !== null) {
+      return result;
+    }
+  }
+
+  // 如果没有找到匹配的节点，返回null
   return null;
 }
 

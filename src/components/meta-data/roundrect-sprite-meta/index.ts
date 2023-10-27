@@ -22,6 +22,7 @@ export const roundRectSpriteMeta: ISpriteMeta = {
       },
     };
   },
+  icon: new URL("../../../assets/icon/圆角矩形.svg", import.meta.url).href,
   component: RoundRectSprite,
   resizePoints: "all", // 'all' 代表有所有的形变点
   isShowRotateHandle: false, // 是否显示旋转操作杆

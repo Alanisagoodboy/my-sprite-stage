@@ -1,7 +1,7 @@
 <!-- 矩形精灵 -->
 <template>
   <g>
-    <rect v-bind="bind" fill="#398cfe" stroke-width="3"><slot /></rect>
+    <rect v-bind="bind"><slot /></rect>
     <foreignObject x="0" y="0" :width="f.width" :height="f.height">
       <div
         ref="editDivRef"
@@ -46,16 +46,18 @@ function handleTextInput() {
 }
 
 const bind = computed(() => {
-  const {/*  x, y, */ width, height } = props.sprite?.boundingBox;
+  const { /*  x, y, */ width, height } = props.sprite?.boundingBox;
   // const centerPoint = {
   //   x: x + width / 2,
   //   y: y + height / 2,
   // };
-  return {
-    x: 0,
-    y: 0,
+  const { fill, stroke, strokeWidth } = props.sprite.attrs;
+  return {  
     width,
     height,
+    fill,
+    stroke,
+    'stroke-width': strokeWidth
     // transform: `rotate(${rotate} ${centerPoint.x} ${centerPoint.y})`,
   };
 });

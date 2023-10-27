@@ -37,6 +37,7 @@ export const polylineSpriteMeta: ISpriteMeta = {
     };
   },
   type: SPRITE_NAME.POLYLINE,
+  icon: new URL("../../../assets/icon/折线.svg", import.meta.url).href,
   // 组件
   component: PolylineSprite,
   resizePoints: "empty", // 为空代表没有缩放的点

@@ -21,6 +21,7 @@ export const textSpriteMeta: ISpriteMeta = {
       },
     };
   },
+  icon: new URL("../../../assets/icon/文本.svg", import.meta.url).href,
   component: TextSprite,
   resizePoints: "all", // 'all' 代表有所有的形变点
   isShowRotateHandle: false, // 是否显示旋转操作杆

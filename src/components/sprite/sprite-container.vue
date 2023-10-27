@@ -4,6 +4,7 @@
     class="sprite-container"
     :transform="transform"
   >
+    <!-- <text>{{ sprite.id }}</text> -->
     <!-- <text>{{ `x:${sprite.boundingBox.x}` }}</text> -->
     <!-- <text>{{ `y:${sprite.boundingBox.y}` }}</text> -->
     <slot> </slot>

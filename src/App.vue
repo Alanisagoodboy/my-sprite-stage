@@ -4,6 +4,9 @@
       <div class="header-bar">
         <button @click="handleGroup">组合</button>
         <button @click="handleCancelGroup">解组</button>
+
+        <button @click="redo">重做</button>
+        <button @click="undo">撤销</button>
       </div>
     </div>
     <div class="content">
@@ -22,16 +25,16 @@
       </div>
       <div class="center">
         <ul class="ul" @dragstart="handleDragStart">
-          <li
-            class="li"
-            v-for="item of componentList"
-            :draggable="true"
-            :data-index="item.name"
-          >
-            {{ item.title }}
+          <li class="li" v-for="item of componentList" :title="item.title">
+            <img
+              :data-index="item.type"
+              style="width: 32px"
+              :src="item.icon"
+              alt=""
+            />
           </li>
         </ul>
-        <div class="center-content">
+        <div class="center-content" ref="contentWrapper">
           <Stage
             ref="stageRef"
             v-bind="stage"
@@ -61,8 +64,10 @@
               :spriteList="spriteList"
               :registerSpriteMetaMap="registerSpriteMetaMap"
               @move="move"
+              @move-end="moveEnd"
               @rotate="rotate"
               @resize="resize"
+              @resize-end="resizeEnd"
               @select="select"
             />
 
@@ -76,6 +81,7 @@
 
             <!-- 工具栏渲染器 -->
             <!-- <Toolbar :activeSpriteList="activeSpriteList"></Toolbar> -->
+
             <!-- 选框: 用于多选 -->
             <SelectArea
               :stage="stage"
@@ -83,6 +89,18 @@
               @select-area-move="handleSelectAreaMove"
             />
           </Stage>
+
+          <!-- 右键菜单精灵渲染器 -->
+          <ContextMenu
+            :target="contentWrapper"
+            :menuList="[
+              {
+                label: '空空如也',
+                value: 'empty',
+              },
+            ]"
+            @menu-item-click="handleMenuItemClick"
+          ></ContextMenu>
         </div>
       </div>
       <div class="right" v-if="1">
@@ -105,18 +123,22 @@ import AnchorPoints from "./components/stage/anchor-point/anchor-points.vue";
 import GridLines from "./components/stage/grid-line.vue";
 import SelectArea from "./components/stage/select-area.vue";
 import AttrsPanel from "./components/attrs-panel/index.vue";
+import ContextMenu from "./components/context-menu/index.vue";
 // import AuxiliaryLine from "./components/stage/auxiliary-line.vue";
 // import Toolbar from "./components/sprite/toolbar-sprite.vue";
 
 import { ref, shallowRef, provide, reactive } from "vue";
 
-import { resize as x } from "./directive";
+import { resize as vSplit } from "./directive";
 
 import { default_sprite_data } from "./components/meta-data/index";
+
+// @ts-ignore
 import _ from "lodash";
+
+import { History } from "./utils/history";
 // import { getCoordinateInStage } from "../../"
 
-const vSplit = x;
 import {
   ICoordinate,
   ISprite,
@@ -125,12 +147,17 @@ import {
 } from "./components/meta-data/types";
 import { getCoordinateInStage } from "./utils";
 
-const componentList = Object.values(default_sprite_data).map((m) => {
-  return {
-    name: m.type,
-    title: m.title,
-  };
-});
+const componentList = Object.values(default_sprite_data)
+  .filter((f) => f.type !== SPRITE_NAME.GROUP)
+  .map((m) => {
+    return {
+      type: m.type,
+      title: m.title,
+      icon: m.icon,
+    };
+  });
+
+console.log(componentList, "componentList");
 
 // 舞台信息
 const stage = reactive({
@@ -139,7 +166,11 @@ const stage = reactive({
   scale: 1,
 });
 
+// 历史记录
+const history = new History();
+
 const stageRef = ref<InstanceType<typeof Stage> | null>(null);
+const contentWrapper = ref(null);
 // 精灵列表
 const spriteList = ref<ISprite[]>([]);
 // 活跃（被选中）状态的精灵列表
@@ -151,12 +182,20 @@ const registerSpriteMetaMap: any = shallowRef({});
 // 对齐线
 const auxiliaryLineList = ref<any[]>([]);
 
+// 注册精灵
+registerSpriteList();
+
 // const boundingRectInfo = computed()
 
 /**
  *
  * 注册精灵
  */
+function registerSpriteList() {
+  Object.values(default_sprite_data).forEach((sprite) => {
+    registerSprite(sprite);
+  });
+}
 
 function registerSprite(spriteMeta: ISpriteMeta) {
   if (registerSpriteMetaMap.value?.[spriteMeta.type]) {
@@ -165,10 +204,19 @@ function registerSprite(spriteMeta: ISpriteMeta) {
   }
   registerSpriteMetaMap.value[spriteMeta.type] = spriteMeta;
 }
+// function registerSprite(spriteMeta: ISpriteMeta) {
+//   if (registerSpriteMetaMap.value?.[spriteMeta.type]) {
+//     console.warn(`Sprite ${spriteMeta.type} 已经注册`);
+//     return;
+//   }
+//   registerSpriteMetaMap.value[spriteMeta.type] = spriteMeta;
+// }
 
 // 选取拖拽精灵
 function handleDragStart(e: DragEvent) {
   if (e !== null && e.target instanceof HTMLElement) {
+    console.log(e.target.dataset, "e.target.dataset.index");
+
     e.dataTransfer!.setData("index", e.target.dataset.index!);
   }
 }
@@ -186,14 +234,17 @@ function handleDrop(e: DragEvent) {
   // if (e !== null && typeof e.dataTransfer === "dataTransfer") {
   const name = e.dataTransfer!.getData("index") as SPRITE_NAME;
   console.log(name, "kkk");
-
-  addSpriteToStage({
-    name,
-    point: {
-      x: e.clientX,
-      y: e.clientY,
-    },
-  });
+  if (name) {
+    addSpriteToStage({
+      name,
+      point: {
+        x: e.clientX,
+        y: e.clientY,
+      },
+    });
+  } else {
+    throw new Error("精灵未注册或者数据不对");
+  }
 }
 // }
 
@@ -209,7 +260,7 @@ function addSpriteToStage({
   point: ICoordinate;
 }) {
   const spriteMeta = default_sprite_data[name];
-  registerSprite(spriteMeta);
+
   const sprite = spriteMeta.createInitData();
   const _point = getCoordinateInStage(
     stageRef.value!.svgRef as HTMLElement,
@@ -220,6 +271,8 @@ function addSpriteToStage({
   sprite.boundingBox.y = _point.y;
   spriteList.value.push(sprite);
   activeSpriteList.value = [sprite];
+
+  history.push(JSON.parse(JSON.stringify(spriteList.value)));
 }
 
 /**
@@ -227,17 +280,32 @@ function addSpriteToStage({
  */
 function updateSpriteList(info: any) {
   const { target, lines = [] } = info;
-  activeSpriteList.value.forEach((item: ISprite, index: number) => {
-    item.boundingBox.x = target[index].x;
-    item.boundingBox.y = target[index].y;
-    item.boundingBox.width = target[index].width;
-    item.boundingBox.height = target[index].height;
-  });
+  console.log(
+    target,
+    "target",
+    activeSpriteList.value,
+    "activeSpriteList.value"
+  );
+
+  if (target && target.length) {
+    activeSpriteList.value.forEach((item: ISprite, index: number) => {
+      item.boundingBox.x = target[index].x;
+      item.boundingBox.y = target[index].y;
+      item.boundingBox.width = target[index].width;
+      item.boundingBox.height = target[index].height;
+    });
+  }
+
   auxiliaryLineList.value = lines;
 }
 
 function move(info: any) {
   updateSpriteList(info);
+}
+
+function moveEnd(info: any) {
+  updateSpriteList(info);
+  history.push(JSON.parse(JSON.stringify(spriteList.value)));
 }
 
 function rotate(info: any) {
@@ -246,6 +314,11 @@ function rotate(info: any) {
 
 function resize(info: any) {
   updateSpriteList(info);
+}
+
+function resizeEnd(info: any) {
+  updateSpriteList(info);
+  history.push(JSON.parse(JSON.stringify(spriteList.value)));
 }
 
 // 更新精灵属性
@@ -259,7 +332,7 @@ function updateProps({
   value: any;
 }) {
   const sprite = spriteList.value.find((f) => f.id === id);
-  _.set(sprite, path, value, "not-found");
+  _.set(sprite, path, value, null);
 }
 
 // 选中精灵 时 根据id找到当前点击的精灵的信息
@@ -283,18 +356,17 @@ function handleAnchorPointMove(info: any) {
 // function handleAnchorPointMoveEnd(info: any) {}
 
 /**
- *
+ * 区域选择
  */
 function handleSelectAreaMove(activeList: ISprite[]) {
   activeSpriteList.value = [...activeList];
-  console.log(activeSpriteList.value, "activeList");
 }
 
 // 组合
 function handleGroup() {
   // 1.组合只针对被选中的精灵
   const groupMeta = default_sprite_data[SPRITE_NAME.GROUP];
-  registerSprite(groupMeta);
+  // registerSprite(groupMeta);
   const groupSpriteData = groupMeta.createInitData(
     activeSpriteList.value.map((m) => m.boundingBox)
   );
@@ -364,9 +436,38 @@ function handleCancelGroup() {
 }
 
 function handleScale(scale: number) {
-  console.log(scale, "scale");
-
   stage.scale = scale;
+}
+
+function redo() {
+  history.redo();
+  activeSpriteList.value = [];
+
+  console.log(history, history.stack, "000");
+  // if (history.currentValue) {
+  spriteList.value = history.currentValue || [];
+  // }
+
+  console.log(spriteList.value, "spriteList.value");
+}
+
+function undo() {
+  history.undo();
+
+  activeSpriteList.value = [];
+
+  console.log(history, history.stack, "000");
+  // if (history.currentValue) {
+  spriteList.value = history.currentValue || [];
+  // }
+  console.log(spriteList.value, "spriteList.value");
+}
+
+/**
+ * 菜单点击
+ */
+function handleMenuItemClick(menu: any) {
+  console.log(menu, "menu");
 }
 
 // 向后代注入当前注册的精灵信息
@@ -419,9 +520,11 @@ body {
   background-color: #fff;
   border-radius: 8px;
 
+  padding: 5px;
   left: 30px;
 
   margin: auto;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
 }
 .li {
   height: 30px;
