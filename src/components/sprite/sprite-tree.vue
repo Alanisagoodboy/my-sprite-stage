@@ -4,7 +4,6 @@
     v-for="sprite of spriteList"
     :sprite="sprite"
     :key="sprite.id"
-    
   >
     <template v-if="sprite.children && sprite.children.length > 0">
       <g class="g">
@@ -17,6 +16,7 @@
         <sprite-tree
           :spriteList="sprite.children"
           :registerSpriteMetaMap="registerSpriteMetaMap"
+          @updateProps="updateProps"
         ></sprite-tree>
       </g>
     </template>
@@ -24,6 +24,7 @@
       <component
         :is="registerSpriteMetaMap[sprite.type].component"
         :sprite="sprite"
+        @updateProps="updateProps"
       ></component>
     </template>
   </SpriteContainer>
@@ -41,6 +42,14 @@ defineProps<{
   spriteList: ISprite[];
   registerSpriteMetaMap: any;
 }>();
+
+const emits = defineEmits(["updateProps"]);
+
+function updateProps(...arg) {
+  console.log(arg, "kkk");
+
+  emits("updateProps", ...arg);
+}
 </script>
 
 <style scoped>

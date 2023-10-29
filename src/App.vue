@@ -7,6 +7,8 @@
 
         <button @click="redo">重做</button>
         <button @click="undo">撤销</button>
+
+        <button @click="addPoint">增加锚点</button>
       </div>
     </div>
     <div class="content">
@@ -53,6 +55,7 @@
             <SpriteTree
               :spriteList="spriteList"
               :registerSpriteMetaMap="registerSpriteMetaMap"
+              @updateProps="updateProps"
             />
 
             <!-- 活跃的精灵容器：提供移动旋转缩放选中的能力 -->
@@ -321,18 +324,29 @@ function resizeEnd(info: any) {
   history.push(JSON.parse(JSON.stringify(spriteList.value)));
 }
 
-// 更新精灵属性
-function updateProps({
-  id,
-  path,
-  value,
-}: {
+interface IUpdateParams {
   id: string;
   path: "string";
   value: any;
-}) {
-  const sprite = spriteList.value.find((f) => f.id === id);
-  _.set(sprite, path, value, null);
+}
+
+interface IMode {
+  handleType: string;
+  value: string;
+}
+
+// 更新精灵属性
+function updateProps(updateParams: IUpdateParams, _mode: IMode) {
+  const sprite = spriteList.value.find((f) => f.id === updateParams.id);
+  if (sprite) {
+    _.set(sprite, updateParams.path, updateParams.value, null);
+  }
+
+  if (_mode) {
+    mode.value = _mode.value;
+  } else {
+    mode.value = "";
+  }
 }
 
 // 选中精灵 时 根据id找到当前点击的精灵的信息
@@ -468,6 +482,19 @@ function undo() {
  */
 function handleMenuItemClick(menu: any) {
   console.log(menu, "menu");
+}
+
+/**
+ * 增加锚点
+ */
+const mode = ref("");
+provide("mode", mode);
+function addPoint() {
+  if (mode.value === "addPoint") {
+    mode.value = "";
+  } else {
+    mode.value = "addPoint";
+  }
 }
 
 // 向后代注入当前注册的精灵信息

@@ -1,5 +1,5 @@
 <template>
-  <polyline
+  <polygon
     stroke="#999"
     :stroke-width="strokeWidth"
     fill="none"
@@ -9,7 +9,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, inject, ref } from "vue";
+import { computed, inject } from "vue";
 import { ICoordinate, type ISprite } from "../../../components/meta-data/types";
 import {
   calculateFixPointOnLine,

@@ -5,6 +5,7 @@ export enum SPRITE_NAME {
   LINE = "LineSprite", // 线段
   ROUND_RECT = "RoundRectSprite", // 圆角矩形
   POLYLINE = "PolylineSprite", // 折线
+  POLYGON = "PolygonSprite", // 多边形
   GROUP = "GroupSprite", // 组合精灵
 }
 

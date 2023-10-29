@@ -500,7 +500,7 @@ function getLength(x: number, y: number): number {
  * @param p2 - 线端点的坐标
  * @returns 距离
  */
-function distance(p1: IPoint, p2: IPoint) {
+ function distance(p1: IPoint, p2: IPoint) {
   return Math.sqrt((p1.x - p2.x) ** 2 + (p1.y - p2.y) ** 2);
 }
 
@@ -1236,6 +1236,100 @@ export function getWrapperBoxByPoint(pointList: ICoordinate[]) {
   };
 }
 
+
+
+/**
+ * 判断一个点是否在线段上
+ *
+ * @param {ICoordinate} A - 线段起点坐标
+ * @param {ICoordinate} B - 线段终点坐标
+ * @param {ICoordinate} C - 待判断点坐标
+ * @returns {boolean} - 返回布尔值，表示点是否在线段上
+ */
+function isPointOnSegment(
+  A: ICoordinate,
+  B: ICoordinate,
+  C: ICoordinate
+): boolean {
+  const { x: x1, y: y1 } = A;
+  const { x: x2, y: y2 } = B;
+  const { x, y } = C;
+
+  // 计算线段长度
+  const length = Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
+  // 计算点与线段起点和终点的距离
+  const dist1 = Math.sqrt((x1 - x) ** 2 + (y1 - y) ** 2);
+  const dist2 = Math.sqrt((x2 - x) ** 2 + (y2 - y) ** 2);
+  // 判断点是否在线段上
+  return dist1 + dist2 <= length;
+}
+
+/**
+ * 在直线上求得定点的坐标
+ *
+ * @param point 坐标点
+ * @param startPoint 起点
+ * @param endPoint 终点
+ * @returns 返回定点坐标(以x矫正)
+ */
+function calculateFixPointOnLine(point: ICoordinate,startPoint: ICoordinate, endPoint: ICoordinate) {
+
+  if (startPoint.x === endPoint.x) {
+    return {
+      x: startPoint.x,
+      y: point.y,
+    };
+  } else {
+    const k = (endPoint.y - startPoint.y) / (endPoint.x - startPoint.x);
+    const b = startPoint.y - k * startPoint.x;
+    return {
+      x: point.x,
+      y: k * point.x + b,
+    }
+  }
+
+}
+
+
+
+// 定义一个函数 findNearestSegment，输入参数为一个点和一组点（多边形），返回最近线段的起始和结束索引，或 null（如果没有找到线段）
+ function findNearestSegment(point: ICoordinate, points: ICoordinate[]): { startIndex: number, endIndex: number } | null {
+  // 初始化最近线段为 null，以及最小距离为无穷大
+  let nearestSegment = null;
+  let minDistance = Infinity;
+
+  // 遍历所有的点对，从 points[i] 到 points[i+1] 形成线段
+  for (let i = 0; i < points.length - 1; i++) {
+    // 当前线段的起始点
+    const segmentStart = points[i];  
+    // 当前线段的结束点
+    const segmentEnd = points[i + 1]; 
+    // 计算当前点到线段的距离，并保存在 calculateDistance 函数中返回
+    const distance = calculateDistance(point, segmentStart, segmentEnd); 
+
+    // 如果当前距离比已知的最小距离还要小，那么更新最小距离和最近线段
+    if (distance < minDistance) {
+      minDistance = distance;
+      nearestSegment = { startIndex: i, endIndex: i + 1 };
+    }
+  }
+
+  // 返回最近线段的信息，如果没有找到线段则返回 null
+  return nearestSegment;
+}
+
+// 定义一个函数 calculateDistance，输入参数为一个点和两个点（线段的起点和终点），返回该点到线段的距离
+function calculateDistance(point: ICoordinate, segmentStart: ICoordinate, segmentEnd: ICoordinate): number {
+  // 从输入参数中提取点的坐标和线段端点的坐标
+  const [x1, y1] = [segmentStart.x, segmentStart.y];
+  const [x2, y2] = [segmentEnd.x, segmentEnd.y];
+  const [px, py] = [point.x, point.y]; // 输入点的坐标
+
+  // 使用行列式方法计算点到线段的距离，并返回结果
+  const distance = Math.abs((x1 - x2) * (py - y1) - (y1 - y2) * (px - x1)) / Math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2);
+  return distance;
+}
+
 export {
   getLength,
   getPoint,
@@ -1245,5 +1339,9 @@ export {
   getHandlePoint, // 计算操作杆（句柄）的坐标点
   calcResizedBoxInfo, // 计算形变后的盒子模型信息
   findParentByClass, // 根据类名寻找父元素
-  getWrapperBoxInfo,
+  getWrapperBoxInfo, // 获取包裹盒信息
+  findNearestSegment, // 寻找最近线段,返回最近线段的起始和结束索引
+  isPointOnSegment, // 判断点是否在线段上
+  distance, // 计算两点之间的距离
+  calculateFixPointOnLine, // 在直线上求得定点的坐标
 };

@@ -5,6 +5,7 @@ import { roundRectSpriteMeta } from "./roundrect-sprite-meta"
 import { textSpriteMeta } from "./text-sprite-meta";
 import { polylineSpriteMeta } from "./polyline-sprite-meta"
 import { groupSpriteMeta } from "./group-sprite-meta";
+import { polygonSpriteMeta } from "./polygon-sprite-meta";
 
 export const default_sprite_data: Record<SPRITE_NAME, any> = {
   [SPRITE_NAME.RECT]: rectSpriteMeta,
@@ -12,5 +13,6 @@ export const default_sprite_data: Record<SPRITE_NAME, any> = {
   [SPRITE_NAME.ROUND_RECT]: roundRectSpriteMeta,
   [SPRITE_NAME.TEXT]: textSpriteMeta,
   [SPRITE_NAME.POLYLINE]: polylineSpriteMeta,
-  [SPRITE_NAME.GROUP]: groupSpriteMeta
+  [SPRITE_NAME.POLYGON]: polygonSpriteMeta,
+  [SPRITE_NAME.GROUP]: groupSpriteMeta,
 };
