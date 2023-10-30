@@ -10,7 +10,9 @@
       :cy="point.y"
       v-for="(point, index) of anchorPoints"
       :key="index"
-      fill="#1e7fff"
+      fill="#FFF"
+      stroke="#398cfe"
+      stroke-width="1"
       filter="drop-shadow(rgba(0, 0, 0, 0.4) 0 0 5)"
       @pointerdown="handleDown($event, { anchorPoints, sprite }, +index)"
     ></circle>

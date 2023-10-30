@@ -23,7 +23,7 @@ const p = defineProps<{
 
 const strokeWidth = 10;
 
-const emits = defineEmits(["updateProps"]);
+const emits = defineEmits(["updateSprite"]);
 
 const bind = computed(() => {
   const { boundingBox } = p.sprite;
@@ -77,11 +77,13 @@ function addPoint(e: MouseEvent) {
     const newPoints = JSON.parse(JSON.stringify(points));
     newPoints.splice(endIndex, 0, curRatioPoint);
     emits(
-      "updateProps",
+      "updateSprite",
       {
         id: p.sprite.id,
-        path: "attrs.points",
-        value: newPoints,
+        stateSet: {
+          path: "attrs.points",
+          value: newPoints,
+        },
       },
       {
         handleType: "mode",
@@ -101,30 +103,4 @@ function getPointInStage(e: any) {
   };
 }
 
-function findClickSideStartIndex(
-  curPoint: ICoordinate,
-  pointList: ICoordinate[]
-) {
-  console.log(pointList, "pointList");
-
-  const index = pointList.findIndex((point, i) => {
-    let prePoint = pointList[i - 1];
-    if (i === 0) {
-      prePoint = pointList[pointList.length - 1];
-    }
-
-    // 假设端点为A,B， 点的点是C
-    // 两端点的距离
-    const AB = distance(prePoint, point);
-    const BC = distance(curPoint, prePoint);
-    const AC = distance(curPoint, point);
-
-    const flag = AC + BC <= Math.sqrt(AB ** 2 + (strokeWidth / 2) ** 2);
-    return flag;
-  });
-
-  return index;
-}
-
-// 实现已知两个点A{x, y}, B{x, y}，现在有第三个点，求第三个点作垂线与前面两个点相交的点坐标
 </script>

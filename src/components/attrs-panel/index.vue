@@ -58,7 +58,7 @@ const props = defineProps<{
   activeSpriteList: ISprite[];
 }>();
 
-const emits = defineEmits(["updateProps"]);
+const emits = defineEmits(["updateSprite"]);
 
 // 属性配置
 const attrsConfig = computed(() => {
@@ -125,15 +125,17 @@ function getValueFromModel(item: IConfigSchema) {
 function setValueToModel(val: any, item: IConfigSchema) {
   console.log("999");
 
-  emits("updateProps", {
+  emits("updateSprite", {
     id: form.value!.id,
-    path: item.path,
-    value: item.outValFormat
-      ? item.outValFormat({
-          schema: item,
-          value: val,
-        })
-      : val,
+    setState: {
+      path: item.path,
+      value: item.outValFormat
+        ? item.outValFormat({
+            schema: item,
+            value: val,
+          })
+        : val,
+    },
   });
 }
 </script>

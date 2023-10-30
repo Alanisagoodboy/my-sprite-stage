@@ -12,6 +12,7 @@ export const textSpriteMeta: ISpriteMeta = {
       attrs: {
         // fill: "#fdc5bf"
         fill: "#eee",
+        content: '123',
       },
       boundingBox: {
         x: 100,
@@ -23,6 +24,6 @@ export const textSpriteMeta: ISpriteMeta = {
   },
   icon: new URL("../../../assets/icon/文本.svg", import.meta.url).href,
   component: TextSprite,
-  resizePoints: "all", // 'all' 代表有所有的形变点
+  resizePoints: "empty", // 'all' 代表有所有的形变点
   isShowRotateHandle: false, // 是否显示旋转操作杆
 };

@@ -7,6 +7,7 @@
     :width="width"
     style="outline: 1px solid #398cfe"
     ref="svgRef"
+    :viewBox="`0, 0, ${width}, ${height}`"
     :transform="`scale(${scale}) translate(${d.dx}, ${d.dy})`"
     @mousewheel="mousewheel"
     @mousedown="mousedown"

@@ -13,7 +13,16 @@
     </div>
     <div class="content">
       <div class="left">
-        <div style="height: 50%; background-color: aqua" v-split.bottom>2</div>
+        <div class="left-top" v-split.bottom>
+          <p>预览</p>
+          <div class="preview-container">
+            <PreviewWindowSprite
+              :stage="stage"
+              :sprite-list="spriteList"
+              :register-sprite-meta-map="registerSpriteMetaMap"
+            />
+          </div>
+        </div>
         <div style="height: 50%; background-color: bisque">
           <p>精灵大纲</p>
           <el-tree
@@ -55,7 +64,7 @@
             <SpriteTree
               :spriteList="spriteList"
               :registerSpriteMetaMap="registerSpriteMetaMap"
-              @updateProps="updateProps"
+              @updateSprite="updateSprite"
             />
 
             <!-- 活跃的精灵容器：提供移动旋转缩放选中的能力 -->
@@ -111,7 +120,7 @@
         <AttrsPanel
           :stage="stage"
           :activeSpriteList="activeSpriteList"
-          @updateProps="updateProps"
+          @updateSprite="updateSprite"
         />
       </div>
     </div>
@@ -127,6 +136,7 @@ import GridLines from "./components/stage/grid-line.vue";
 import SelectArea from "./components/stage/select-area.vue";
 import AttrsPanel from "./components/attrs-panel/index.vue";
 import ContextMenu from "./components/context-menu/index.vue";
+import PreviewWindowSprite from "./components/sprite/preview-window-sprite/index.vue";
 // import AuxiliaryLine from "./components/stage/auxiliary-line.vue";
 // import Toolbar from "./components/sprite/toolbar-sprite.vue";
 
@@ -149,6 +159,7 @@ import {
   SPRITE_NAME,
 } from "./components/meta-data/types";
 import { getCoordinateInStage } from "./utils";
+import { IMode, IUpdateParams } from "./types";
 
 const componentList = Object.values(default_sprite_data)
   .filter((f) => f.type !== SPRITE_NAME.GROUP)
@@ -324,22 +335,21 @@ function resizeEnd(info: any) {
   history.push(JSON.parse(JSON.stringify(spriteList.value)));
 }
 
-interface IUpdateParams {
-  id: string;
-  path: "string";
-  value: any;
-}
-
-interface IMode {
-  handleType: string;
-  value: string;
-}
-
 // 更新精灵属性
-function updateProps(updateParams: IUpdateParams, _mode: IMode) {
-  const sprite = spriteList.value.find((f) => f.id === updateParams.id);
+function updateSprite(updateParams: IUpdateParams, _mode: IMode) {
+  const { id, stateSet } = updateParams;
+  const sprite = spriteList.value.find((f) => f.id === id);
+
+  // 如果查找到精灵
   if (sprite) {
-    _.set(sprite, updateParams.path, updateParams.value, null);
+    // 状态设置器有值
+    if (stateSet) {
+      const _stateSet = Array.isArray(stateSet) ? stateSet : [stateSet];
+      // 遍历设置器
+      _stateSet.forEach((item) => {
+        _.set(sprite, item.path, item.value, null);
+      });
+    }
   }
 
   if (_mode) {
@@ -598,6 +608,15 @@ body {
   background-color: aqua;
   width: 300px;
   height: 100%;
+}
+.left-top {
+  height: 200px;
+  display: flex;
+  flex-direction: column;
+}
+.preview-container {
+  flex: 1;
+  padding: 5px;
 }
 
 .right {

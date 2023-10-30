@@ -1,23 +1,19 @@
 <!-- 文本精灵 -->
 <template>
   <g>
-    <foreignObject x="0" y="0" :width="f.width" :height="f.height">
-      <div
-        ref="editDivRef"
-        xmlns="http://www.w3.org/1999/xhtml"
-        contenteditable="true"
-        spellcheck="false"
-        style="width: fit-content;"
-        @input="handleTextInput"
-      >
-        {{ '你好' }}
-      </div>
-    </foreignObject>
+    <EditDiv
+      :width="sprite.boundingBox.width"
+      :height="sprite.boundingBox.height"
+      :content="sprite.attrs.content"
+      @text-change="handleTextChange"
+      @size-change="handleSizeChange"
+    />
   </g>
 </template>
+
 <script setup lang="ts">
+import EditDiv from "./edit-div.vue";
 import { ISprite } from "../../meta-data/types";
-import { computed, onMounted, ref } from "vue";
 defineOptions({
   name: "text-sprite",
 });
@@ -26,34 +22,35 @@ const props = defineProps<{
   sprite: ISprite;
 }>();
 
-const f = ref({
-  width: 0,
-  height: 0
-})
-const editDivRef = ref(null)
+const emits = defineEmits(["updateSprite"]);
 
-function autoCalcTextSize () {
-  const rect = (editDivRef.value)!.getBoundingClientRect()
-  f.value.height = rect.height;
-  f.value.width = rect.width
+function handleTextChange(content: any) {
+  emits("updateSprite", {
+    id: props.sprite.id,
+    stateSet: [
+      {
+        path: "attrs.content",
+        value: content,
+      },
+    ],
+  });
 }
-onMounted(()=>{
-  autoCalcTextSize()
-})
-function handleTextInput() {
-  autoCalcTextSize()
+function handleSizeChange(info: any) {
+  const { width, height } = info;
+  emits("updateSprite", {
+    id: props.sprite.id,
+    stateSet: [
+      {
+        path: "boundingBox.width",
+        value: width,
+      },
+      {
+        path: "boundingBox.height",
+        value: height,
+      },
+    ],
+  });
 }
-
-const bind = computed(() => {
-  const {  width, height} = props.sprite?.boundingBox || {};
-  return {
-    x: 0,
-    y: 0,
-    width,
-    height,
-    // transform: `rotate(${rotate} ${centerPoint.x} ${centerPoint.y})`,
-  };
-});
 </script>
 
-<style lang="scss" scoped></style>
+<style scoped></style>

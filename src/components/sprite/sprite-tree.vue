@@ -16,7 +16,7 @@
         <sprite-tree
           :spriteList="sprite.children"
           :registerSpriteMetaMap="registerSpriteMetaMap"
-          @updateProps="updateProps"
+          @updateSprite="updateSprite"
         ></sprite-tree>
       </g>
     </template>
@@ -24,7 +24,7 @@
       <component
         :is="registerSpriteMetaMap[sprite.type].component"
         :sprite="sprite"
-        @updateProps="updateProps"
+        @updateSprite="updateSprite"
       ></component>
     </template>
   </SpriteContainer>
@@ -43,12 +43,10 @@ defineProps<{
   registerSpriteMetaMap: any;
 }>();
 
-const emits = defineEmits(["updateProps"]);
+const emits = defineEmits(["updateSprite"]);
 
-function updateProps(...arg) {
-  console.log(arg, "kkk");
-
-  emits("updateProps", ...arg);
+function updateSprite(...arg: any[]) {
+  emits("updateSprite", ...arg);
 }
 </script>
 
