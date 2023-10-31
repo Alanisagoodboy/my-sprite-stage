@@ -13,6 +13,9 @@ export const rectSpriteMeta: ISpriteMeta = {
       attrs: {
         // fill: "#fdc5bf"
         fill: "#eee",
+        content: '',
+        stroke: "#398cfe",
+        strokeWidth: 1,
       },
       boundingBox: {
         x: 100,

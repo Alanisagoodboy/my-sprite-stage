@@ -92,7 +92,7 @@
             />
 
             <!-- 工具栏渲染器 -->
-            <!-- <Toolbar :activeSpriteList="activeSpriteList"></Toolbar> -->
+            <Toolbar :activeSpriteList="activeSpriteList"></Toolbar>
 
             <!-- 选框: 用于多选 -->
             <SelectArea
@@ -138,7 +138,7 @@ import AttrsPanel from "./components/attrs-panel/index.vue";
 import ContextMenu from "./components/context-menu/index.vue";
 import PreviewWindowSprite from "./components/sprite/preview-window-sprite/index.vue";
 // import AuxiliaryLine from "./components/stage/auxiliary-line.vue";
-// import Toolbar from "./components/sprite/toolbar-sprite.vue";
+import Toolbar from "./components/sprite/toolbar-sprite.vue";
 
 import { ref, shallowRef, provide, reactive } from "vue";
 
@@ -339,14 +339,19 @@ function resizeEnd(info: any) {
 function updateSprite(updateParams: IUpdateParams, _mode: IMode) {
   const { id, stateSet } = updateParams;
   const sprite = spriteList.value.find((f) => f.id === id);
+  console.log(sprite, "sprite");
 
   // 如果查找到精灵
   if (sprite) {
     // 状态设置器有值
     if (stateSet) {
       const _stateSet = Array.isArray(stateSet) ? stateSet : [stateSet];
+      console.log(_stateSet, '_stateSet');
+      
       // 遍历设置器
       _stateSet.forEach((item) => {
+        console.log(item, 'jjj');
+        
         _.set(sprite, item.path, item.value, null);
       });
     }

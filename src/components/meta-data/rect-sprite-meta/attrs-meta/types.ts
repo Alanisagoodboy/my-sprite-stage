@@ -21,11 +21,11 @@ export interface IClassifyItem {
 export enum PROP_ENUM {
   // 宽
   width = "width",
-  //   高
+  // 高
   height = "height",
-  //   x坐标
+  // x坐标
   x = "x",
-  //   y坐标
+  // y坐标
   y = "y",
   // 背景色
   fill = "fill",
@@ -33,4 +33,10 @@ export enum PROP_ENUM {
   stroke = "stroke",
   // 边框宽度
   strokeWidth = "strokeWidth",
+  // 文本
+  content = "content",
+  // 文本大小
+  contentFontSize = "contentFontSize",
+  // 文本颜色
+  contentColor = "contentColor",
 }

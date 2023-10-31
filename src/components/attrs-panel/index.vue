@@ -26,6 +26,12 @@
                 :model-value="getValueFromModel(item)"
                 @update:modelValue="setValueToModel($event, item)"
               ></el-input>
+              <el-input
+                type="textarea"
+                v-if="item.renderComponent === 'text-area'"
+                :model-value="getValueFromModel(item)"
+                @update:modelValue="setValueToModel($event, item)"
+              ></el-input>
               <el-color-picker
                 v-if="item.renderComponent === 'color-picker'"
                 :model-value="getValueFromModel(item)"
@@ -127,7 +133,7 @@ function setValueToModel(val: any, item: IConfigSchema) {
 
   emits("updateSprite", {
     id: form.value!.id,
-    setState: {
+    stateSet: {
       path: item.path,
       value: item.outValFormat
         ? item.outValFormat({

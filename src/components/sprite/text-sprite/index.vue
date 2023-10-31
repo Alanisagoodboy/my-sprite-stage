@@ -1,19 +1,25 @@
 <!-- 文本精灵 -->
 <template>
   <g>
-    <EditDiv
+    <foreignObject
       :width="sprite.boundingBox.width"
       :height="sprite.boundingBox.height"
-      :content="sprite.attrs.content"
-      @text-change="handleTextChange"
-      @size-change="handleSizeChange"
-    />
+    >
+      <EditDiv
+        @dblclick="handleToEdit"
+        ref="editDivRef"
+        size-type="fit-content"
+        :content="sprite.attrs.content"
+        @text-change="handleTextChange"
+      />
+    </foreignObject>
   </g>
 </template>
 
 <script setup lang="ts">
 import EditDiv from "./edit-div.vue";
 import { ISprite } from "../../meta-data/types";
+import { ref } from "vue";
 defineOptions({
   name: "text-sprite",
 });
@@ -23,20 +29,9 @@ const props = defineProps<{
 }>();
 
 const emits = defineEmits(["updateSprite"]);
-
-function handleTextChange(content: any) {
-  emits("updateSprite", {
-    id: props.sprite.id,
-    stateSet: [
-      {
-        path: "attrs.content",
-        value: content,
-      },
-    ],
-  });
-}
-function handleSizeChange(info: any) {
-  const { width, height } = info;
+const editDivRef = ref<InstanceType<typeof EditDiv>>();
+function handleTextChange(info: any) {
+  const { width, height, content } = info;
   emits("updateSprite", {
     id: props.sprite.id,
     stateSet: [
@@ -48,8 +43,16 @@ function handleSizeChange(info: any) {
         path: "boundingBox.height",
         value: height,
       },
+      {
+        path: "attrs.content",
+        value: content,
+      },
     ],
   });
+}
+
+async function handleToEdit() {
+  await editDivRef.value?.changeMode('edit');
 }
 </script>
 
