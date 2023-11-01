@@ -47,7 +47,7 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
-import { ISprite, IStage } from "../meta-data/types";
+import { ISprite, IStage, SPRITE_NAME } from "../meta-data/types";
 import { default_sprite_data } from "../meta-data/index";
 
 // @ts-ignore
@@ -73,6 +73,9 @@ const attrsConfig = computed(() => {
       const sprite = props.activeSpriteList[0];
       const { type } = sprite;
       const attrsConfig = default_sprite_data[type].attrsConfig;
+      return attrsConfig || null;
+    } else if (props.activeSpriteList.length > 1) {
+      const attrsConfig = default_sprite_data[SPRITE_NAME.GROUP].attrsConfig;
       return attrsConfig || null;
     } else {
       return null;
@@ -107,6 +110,8 @@ const classList = computed(() => {
 const form = computed(() => {
   if (props.activeSpriteList.length === 1) {
     return props.activeSpriteList[0];
+  } else if (props.activeSpriteList.length > 1) {
+    return { ...props.activeSpriteList[0], id: "多个" };
   } else {
     return { id: null };
   }
@@ -122,17 +127,15 @@ function getValueFromModel(item: IConfigSchema) {
       })
     : val;
 
-  console.log(finalVal, "finalVal");
-
   return finalVal;
 }
 
 // 设置传出数据
 function setValueToModel(val: any, item: IConfigSchema) {
-  console.log("999");
-
   emits("updateSprite", {
-    id: form.value!.id,
+    id: props.activeSpriteList
+      .filter((f) => f.type !== SPRITE_NAME.GROUP)
+      .map((m) => m.id),
     stateSet: {
       path: item.path,
       value: item.outValFormat

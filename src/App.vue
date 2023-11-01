@@ -65,6 +65,7 @@
               :spriteList="spriteList"
               :registerSpriteMetaMap="registerSpriteMetaMap"
               @updateSprite="updateSprite"
+              @handleSpriteDblClick="handleSpriteDblClick"
             />
 
             <!-- 活跃的精灵容器：提供移动旋转缩放选中的能力 -->
@@ -158,7 +159,7 @@ import {
   ISpriteMeta,
   SPRITE_NAME,
 } from "./components/meta-data/types";
-import { getCoordinateInStage } from "./utils";
+import { findById, getCoordinateInStage } from "./utils";
 import { IMode, IUpdateParams } from "./types";
 
 const componentList = Object.values(default_sprite_data)
@@ -189,6 +190,12 @@ const contentWrapper = ref(null);
 const spriteList = ref<ISprite[]>([]);
 // 活跃（被选中）状态的精灵列表
 const activeSpriteList = ref<Array<ISprite>>([]);
+
+/*
+  被确切选中的精灵索引
+  触发方式，如果被选中了
+*/
+const exactActiveIndex = ref<number>();
 
 // 已经注册的精灵map
 const registerSpriteMetaMap: any = shallowRef({});
@@ -294,12 +301,6 @@ function addSpriteToStage({
  */
 function updateSpriteList(info: any) {
   const { target, lines = [] } = info;
-  console.log(
-    target,
-    "target",
-    activeSpriteList.value,
-    "activeSpriteList.value"
-  );
 
   if (target && target.length) {
     activeSpriteList.value.forEach((item: ISprite, index: number) => {
@@ -338,24 +339,31 @@ function resizeEnd(info: any) {
 // 更新精灵属性
 function updateSprite(updateParams: IUpdateParams, _mode: IMode) {
   const { id, stateSet } = updateParams;
-  const sprite = spriteList.value.find((f) => f.id === id);
-  console.log(sprite, "sprite");
+  console.log(id, "id");
 
-  // 如果查找到精灵
-  if (sprite) {
-    // 状态设置器有值
-    if (stateSet) {
-      const _stateSet = Array.isArray(stateSet) ? stateSet : [stateSet];
-      console.log(_stateSet, '_stateSet');
-      
-      // 遍历设置器
-      _stateSet.forEach((item) => {
-        console.log(item, 'jjj');
-        
-        _.set(sprite, item.path, item.value, null);
-      });
+  // 为多个的时候，批量设置
+  const _id = Array.isArray(id) ? id : [id];
+  console.log(_id, "kkk");
+  _id.forEach((item) => {
+    const sprite = findById(spriteList.value, item);
+    console.log(sprite, "sprite");
+
+    // 如果查找到精灵
+    if (sprite) {
+      // 状态设置器有值
+      if (stateSet) {
+        const _stateSet = Array.isArray(stateSet) ? stateSet : [stateSet];
+        console.log(_stateSet, "_stateSet");
+
+        // 遍历设置器
+        _stateSet.forEach((item) => {
+          console.log(item, "jjj");
+
+          _.set(sprite, item.path, item.value, null);
+        });
+      }
     }
-  }
+  });
 
   if (_mode) {
     mode.value = _mode.value;
@@ -472,12 +480,9 @@ function redo() {
   history.redo();
   activeSpriteList.value = [];
 
-  console.log(history, history.stack, "000");
   // if (history.currentValue) {
   spriteList.value = history.currentValue || [];
   // }
-
-  console.log(spriteList.value, "spriteList.value");
 }
 
 function undo() {
@@ -485,11 +490,9 @@ function undo() {
 
   activeSpriteList.value = [];
 
-  console.log(history, history.stack, "000");
   // if (history.currentValue) {
   spriteList.value = history.currentValue || [];
   // }
-  console.log(spriteList.value, "spriteList.value");
 }
 
 /**
@@ -510,6 +513,20 @@ function addPoint() {
   } else {
     mode.value = "addPoint";
   }
+}
+
+// let group = [];
+function handleSpriteDblClick(sprite: ISprite) {
+  // 双击
+  // 2.如果双击到了一个精灵，并且这个精灵是组，则选中组
+  // 2.1 如果确定点在了某个精灵上，则选中这个精灵
+  // const target = e.target as any;
+  // console.log(sprite, "dblclick");
+  // if (activeSpriteList.value.length) {
+  //   group = activeSpriteList.value
+  //   handleCancelGroup()
+  // }
+  activeSpriteList.value = [sprite];
 }
 
 // 向后代注入当前注册的精灵信息

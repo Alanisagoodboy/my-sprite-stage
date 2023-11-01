@@ -17,6 +17,7 @@
           :spriteList="sprite.children"
           :registerSpriteMetaMap="registerSpriteMetaMap"
           @updateSprite="updateSprite"
+          @handleSpriteDblClick="handleSpriteDblClick"
         ></sprite-tree>
       </g>
     </template>
@@ -25,6 +26,7 @@
         :is="registerSpriteMetaMap[sprite.type].component"
         :sprite="sprite"
         @updateSprite="updateSprite"
+        @dblclick="handleSpriteDblClick(sprite)"
       ></component>
     </template>
   </SpriteContainer>
@@ -43,10 +45,14 @@ defineProps<{
   registerSpriteMetaMap: any;
 }>();
 
-const emits = defineEmits(["updateSprite"]);
+const emits = defineEmits(["updateSprite", "handleSpriteDblClick"]);
 
 function updateSprite(...arg: any[]) {
   emits("updateSprite", ...arg);
+}
+
+function handleSpriteDblClick(sprite: ISprite) {
+  emits("handleSpriteDblClick", sprite);
 }
 </script>
 

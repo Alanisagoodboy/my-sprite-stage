@@ -30,7 +30,7 @@ export const rectSpriteMeta: ISpriteMeta = {
   resizePoints: "all", // 'all' 代表有所有的形变点
   isShowRotateHandle: false, // 是否显示旋转操作杆
   attrsConfig: {
-    configSchemaMap,
-    classifyList,
+    configSchemaMap, // schema 描述
+    classifyList, // 属性分类列表
   }, // 属性面板描述
 };

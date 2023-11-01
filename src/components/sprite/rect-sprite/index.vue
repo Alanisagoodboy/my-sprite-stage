@@ -1,11 +1,11 @@
 <!-- 矩形精灵 -->
 <template>
-  <g @dblclick="toEdit">
+  <g>
     <rect v-bind="rectBind"><slot /></rect>
-    <foreignObject v-bind="foBind" style="display: flex; align-items: center">
+    <foreignObject v-bind="foBind">
       <div class="content-wrapper">
         <EditDiv
-        :style="contentStyle"
+          :style="contentStyle"
           ref="editDivRef"
           :content="sprite.attrs.content"
           size-type="auto"
@@ -72,12 +72,12 @@ const rectBind = computed(() => {
 });
 
 const contentStyle = computed(() => {
-  const {contentFontSize, contentColor} = props.sprite.attrs;
+  const { contentFontSize, contentColor } = props.sprite.attrs;
   return {
-    fontSize: contentFontSize + 'px',
+    fontSize: contentFontSize + "px",
     color: contentColor,
-  }
-})
+  };
+});
 </script>
 
 <style scoped>
@@ -85,8 +85,7 @@ const contentStyle = computed(() => {
   height: 100%;
   width: 100%;
 
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  line-height: 1;
+  text-align: center;
 }
 </style>

@@ -63,13 +63,23 @@ import { IBoundingBox, IStage, ISprite } from "../meta-data/types";
 
 import { getWrapperBoxInfo } from "../../utils/index";
 
+// function handleSelectExactly(e: MouseEvent) {
+//   // 双击选中
+//   // 1.如果是组，则选中确切点击的组
+//   const target = e.target as HTMLElement;
+//   console.log(target, 'exactly');
+
+// }
+
 // const svgRef = inject("svgRef") as Ref<HTMLElement>;
 onMounted(() => {
   document.addEventListener("pointerdown", onMousedown, false);
+  // document.addEventListener("dblclick", handleSelectExactly, false)
 });
 
 onUnmounted(() => {
   document.removeEventListener("pointerdown", onMousedown, false);
+  // document.removeEventListener("dblclick", handleSelectExactly, false)
 });
 
 const dotSize = 6;
@@ -132,7 +142,6 @@ const auxiliaryLine = computed(() => {
 const resizePoints = computed(() => {
   if (props.activeSpriteList.length === 1) {
     const { registerSpriteMetaMap, activeSpriteList } = props;
-    console.log(registerSpriteMetaMap, "registerSpriteMetaMap");
 
     const activeMeta =
       registerSpriteMetaMap[(activeSpriteList[0] as ISprite).type];
@@ -254,7 +263,6 @@ async function onMousedown(e: MouseEvent) {
     activeList: props.activeSpriteList,
     allList: props.spriteList,
   });
-  console.log(selectSprite, "selectSprite");
 
   //代码丑陋, 输入只是点击，有可能会后触发mouseup，导致坐标数据是以前的，所以在计算出选中后吗，立马更新坐标数据
   boxInfo = selectSprite.boundingBox;
