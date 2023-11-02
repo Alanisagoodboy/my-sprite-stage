@@ -216,7 +216,7 @@ function onDotMousedown(dotInfo: IDot, e: MouseEvent) {
       stage: props.stage,
       handleType: dotInfo.side,
       rect: lastDragInfo,
-      needChangeRect,
+      5,
       staticRectList,
       startEv: e,
       moveEv: moveEv,

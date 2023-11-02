@@ -231,7 +231,7 @@ export function calcResizeBoxInfoWithoutRotate({
     height: boundingBox.height - rect.height,
   };
 
-  const target = needChangeRect.map((m) => {
+  const target = t5t.map((m) => {
     return {
       x: ((m.x - rect.x) / rect.width) * boundingBox.width + boundingBox.x,
       y: ((m.y - rect.y) / rect.height) * boundingBox.height + boundingBox.y,
@@ -1388,7 +1388,7 @@ function getPathByKey(curKey: string, data: Array<any>): Array<any> {
       return;
     }
 
-    // 遍历存放树的数组
+    // 遍历存放树的数rt
     for (let item of data) {
       // 遍历的数组元素存入path参数数组中
       path.push(item);
