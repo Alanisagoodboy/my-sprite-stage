@@ -85,15 +85,15 @@
             />
 
             <!-- 锚点渲染器: 为线条或者部分图形增加辅助功能 -->
-            <AnchorPoints
+            <!-- <AnchorPoints
               :stage="stage"
               :activeSpriteList="activeSpriteList"
               @select="select"
               @anchor-point-move="handleAnchorPointMove"
-            />
+            /> -->
 
             <!-- 工具栏渲染器 -->
-            <Toolbar :activeSpriteList="activeSpriteList"></Toolbar>
+            <!-- <Toolbar :activeSpriteList="activeSpriteList"></Toolbar> -->
 
             <!-- 选框: 用于多选 -->
             <SelectArea
@@ -104,7 +104,7 @@
           </Stage>
 
           <!-- 右键菜单精灵渲染器 -->
-          <ContextMenu
+          <!-- <ContextMenu
             :target="contentWrapper"
             :menuList="[
               {
@@ -113,7 +113,7 @@
               },
             ]"
             @menu-item-click="handleMenuItemClick"
-          ></ContextMenu>
+          ></ContextMenu> -->
         </div>
       </div>
       <div class="right" v-if="1">
@@ -154,12 +154,18 @@ import { History } from "./utils/history";
 // import { getCoordinateInStage } from "../../"
 
 import {
+  IActiveItem,
   ICoordinate,
   ISprite,
   ISpriteMeta,
   SPRITE_NAME,
 } from "./components/meta-data/types";
-import { findById, getCoordinateInStage } from "./utils";
+import {
+  findById,
+  getCoordinateInGroupFromStage,
+  getCoordinateInStage,
+  getCoordinateInStageFromGroup,
+} from "./utils";
 import { IMode, IUpdateParams } from "./types";
 
 const componentList = Object.values(default_sprite_data)
@@ -195,7 +201,7 @@ const activeSpriteList = ref<Array<ISprite>>([]);
   被确切选中的精灵索引
   触发方式，如果被选中了
 */
-const exactActiveIndex = ref<number>();
+// const exactActiveIndex = ref<number>();
 
 // 已经注册的精灵map
 const registerSpriteMetaMap: any = shallowRef({});
@@ -225,13 +231,6 @@ function registerSprite(spriteMeta: ISpriteMeta) {
   }
   registerSpriteMetaMap.value[spriteMeta.type] = spriteMeta;
 }
-// function registerSprite(spriteMeta: ISpriteMeta) {
-//   if (registerSpriteMetaMap.value?.[spriteMeta.type]) {
-//     console.warn(`Sprite ${spriteMeta.type} 已经注册`);
-//     return;
-//   }
-//   registerSpriteMetaMap.value[spriteMeta.type] = spriteMeta;
-// }
 
 // 选取拖拽精灵
 function handleDragStart(e: DragEvent) {
@@ -291,75 +290,135 @@ function addSpriteToStage({
   sprite.boundingBox.x = _point.x;
   sprite.boundingBox.y = _point.y;
   spriteList.value.push(sprite);
-  activeSpriteList.value = [sprite];
+  setActiveSpriteList(sprite);
 
   history.push(JSON.parse(JSON.stringify(spriteList.value)));
 }
 
 /**
- * 更新精灵列表
+ * 更新精灵列表的尺寸大小
  */
-function updateSpriteList(info: any) {
+function updateSpriteBox(info: any) {
   const { target, lines = [] } = info;
 
   if (target && target.length) {
-    activeSpriteList.value.forEach((item: ISprite, index: number) => {
-      item.boundingBox.x = target[index].x;
-      item.boundingBox.y = target[index].y;
-      item.boundingBox.width = target[index].width;
-      item.boundingBox.height = target[index].height;
+    activeSpriteList.value.forEach((item: IActiveItem, index: number) => {
+      const _data = { ...target[index] };
+      console.log(_data, "target[index]");
+      item.boundingBox = { ..._data };
+      // 如果是第一层，那么直接更新，否则将坐标转换为舞台坐标
+      if (!topFindById(item.id)) {
+        const pos = getCoordinateInGroupFromStage(
+          item.id,
+          spriteList.value,
+          _data
+        );
+        console.log(pos, "pos");
+
+        if (pos) {
+          _data.x = pos.x;
+          _data.y = pos.y;
+        }
+      }
+      updateSprite({
+        id: item.id,
+        stateSet: [
+          {
+            path: "boundingBox.x",
+            value: _data.x,
+          },
+          {
+            path: "boundingBox.y",
+            value: _data.y,
+          },
+          {
+            path: "boundingBox.width",
+            value: _data.width,
+          },
+          {
+            path: "boundingBox.height",
+            value: _data.height,
+          },
+        ],
+      });
     });
   }
 
   auxiliaryLineList.value = lines;
 }
 
+/**
+ * 选中精灵列表其实是基于舞台的
+ * 所以需要单独维护渲染出的选中精灵列表中的精灵数据
+ * 也就是保存在选中精灵列表中的数据应该是精灵在舞台中的数据
+ * @param
+ */
+
+function setActiveSpriteList(list: ISprite[] | ISprite) {
+  let _list = Array.isArray(list) ? list : [list];
+  activeSpriteList.value = _list.map((m) => {
+    let { id, boundingBox } = m;
+    // 如果不在第一层，那么就是相对组坐标，需要转换为舞台坐标
+    const find = topFindById(id);
+
+    if (!find) {
+      const point = getCoordinateInStageFromGroup(id, spriteList.value);
+      Object.assign(boundingBox, point);
+    }
+    return {
+      ...m,
+      boundingBox: { ...boundingBox },
+    };
+  });
+}
+
+//  查找id是不是第一层，如果是返回当前精灵
+function topFindById(id: string) {
+  const find = spriteList.value.find((f) => f.id === id);
+  return find;
+}
+
 function move(info: any) {
-  updateSpriteList(info);
+  updateSpriteBox(info);
 }
 
 function moveEnd(info: any) {
-  updateSpriteList(info);
+  updateSpriteBox(info);
   history.push(JSON.parse(JSON.stringify(spriteList.value)));
 }
 
 function rotate(info: any) {
-  updateSpriteList(info);
+  updateSpriteBox(info);
 }
 
 function resize(info: any) {
-  updateSpriteList(info);
+  updateSpriteBox(info);
 }
 
 function resizeEnd(info: any) {
-  updateSpriteList(info);
+  updateSpriteBox(info);
   history.push(JSON.parse(JSON.stringify(spriteList.value)));
 }
 
 // 更新精灵属性
-function updateSprite(updateParams: IUpdateParams, _mode: IMode) {
+function updateSprite(updateParams: IUpdateParams, _mode?: IMode) {
   const { id, stateSet } = updateParams;
-  console.log(id, "id");
 
   // 为多个的时候，批量设置
   const _id = Array.isArray(id) ? id : [id];
-  console.log(_id, "kkk");
+
   _id.forEach((item) => {
     const sprite = findById(spriteList.value, item);
-    console.log(sprite, "sprite");
 
     // 如果查找到精灵
     if (sprite) {
       // 状态设置器有值
       if (stateSet) {
         const _stateSet = Array.isArray(stateSet) ? stateSet : [stateSet];
-        console.log(_stateSet, "_stateSet");
 
         // 遍历设置器
         _stateSet.forEach((item) => {
-          console.log(item, "jjj");
-
-          _.set(sprite, item.path, item.value, null);
+          _.set(sprite, item.path, item.value, "error");
         });
       }
     }
@@ -375,9 +434,8 @@ function updateSprite(updateParams: IUpdateParams, _mode: IMode) {
 // 选中精灵 时 根据id找到当前点击的精灵的信息
 function select(info: any) {
   const { target } = info;
-  console.log(target, "target");
   if (target) {
-    activeSpriteList.value = target;
+    setActiveSpriteList(target);
   }
 }
 
@@ -396,7 +454,7 @@ function handleAnchorPointMove(info: any) {
  * 区域选择
  */
 function handleSelectAreaMove(activeList: ISprite[]) {
-  activeSpriteList.value = [...activeList];
+  setActiveSpriteList(activeList);
 }
 
 // 组合
@@ -409,6 +467,14 @@ function handleGroup() {
   );
   // 2.针对选中的元素计算出组合图形的bounding，并修改子元素的boundingBox
   const { x, y } = groupSpriteData.boundingBox;
+  // const children = []
+  // activeSpriteList.value.forEach((m) => {
+  //   const find = findById(spriteList.value,m.id)
+  //   if (find) {
+
+  //   }
+
+  // })
   groupSpriteData.children.push(
     ...activeSpriteList.value.map((m) => {
       return {
@@ -428,7 +494,7 @@ function handleGroup() {
     return !activeSpriteList.value.find((f) => f.id === sprite.id);
   });
   spriteList.value = [...filter, groupSpriteData];
-  activeSpriteList.value = [groupSpriteData];
+  setActiveSpriteList([groupSpriteData]);
 }
 
 /**
@@ -440,8 +506,9 @@ function handleGroup() {
 function handleCancelGroup() {
   // 如果被选中的是一个并且是组
   if (activeSpriteList.value.length === 1) {
-    const group: ISprite = activeSpriteList.value[0];
-    if (!group.children) return;
+    const item = activeSpriteList.value[0];
+    const group = spriteList.value.find((f) => f.id === item.id);
+    if (!group || !group.children) return;
 
     // 1.修正第一层的位置
     const fixGroupChildren = group.children.map((m) => {
@@ -468,7 +535,7 @@ function handleCancelGroup() {
     const delIndex = spriteList.value.findIndex((f) => f.id === group.id);
     spriteList.value.splice(delIndex, 1);
     spriteList.value.push(...newList);
-    activeSpriteList.value.push(...newList);
+    setActiveSpriteList(newList);
   }
 }
 
@@ -478,7 +545,7 @@ function handleScale(scale: number) {
 
 function redo() {
   history.redo();
-  activeSpriteList.value = [];
+  setActiveSpriteList([]);
 
   // if (history.currentValue) {
   spriteList.value = history.currentValue || [];
@@ -488,7 +555,7 @@ function redo() {
 function undo() {
   history.undo();
 
-  activeSpriteList.value = [];
+  setActiveSpriteList([]);
 
   // if (history.currentValue) {
   spriteList.value = history.currentValue || [];
@@ -506,7 +573,7 @@ function handleMenuItemClick(menu: any) {
  * 增加锚点
  */
 const mode = ref("");
-provide("mode", mode);
+
 function addPoint() {
   if (mode.value === "addPoint") {
     mode.value = "";
@@ -519,18 +586,28 @@ function addPoint() {
 function handleSpriteDblClick(sprite: ISprite) {
   // 双击
   // 2.如果双击到了一个精灵，并且这个精灵是组，则选中组
-  // 2.1 如果确定点在了某个精灵上，则选中这个精灵
-  // const target = e.target as any;
-  // console.log(sprite, "dblclick");
-  // if (activeSpriteList.value.length) {
-  //   group = activeSpriteList.value
-  //   handleCancelGroup()
-  // }
-  activeSpriteList.value = [sprite];
+  // 这里找到的精灵是是组内的数据，需要转换为坐标系中的数据
+  // 1.获取当前组的位置
+  // 也就是需要根据当前id一级一级找到父级，然后将所有父级的位置累加
+  const position = getCoordinateInStageFromGroup(sprite.id, spriteList.value);
+  if (position) {
+    const spriteInStage = JSON.parse(JSON.stringify(sprite));
+    const { x, y } = position;
+    spriteInStage.boundingBox.x = x;
+    spriteInStage.boundingBox.y = y;
+    activeSpriteList.value = [spriteInStage];
+  }
 }
 
 // 向后代注入当前注册的精灵信息
 provide("registerSpriteMetaMap", registerSpriteMetaMap);
+
+// // 向后代注入舞台所有数据信息
+provide("stageApi", {
+  stage: stage,
+  spriteList: spriteList,
+  activeSpriteList: activeSpriteList,
+});
 
 defineOptions({
   name: "NewPage",

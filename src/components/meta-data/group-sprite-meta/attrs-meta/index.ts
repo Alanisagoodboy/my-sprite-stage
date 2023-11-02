@@ -137,6 +137,11 @@ export const configSchemaMap: Record<PROP_ENUM, IConfigSchema> = {
 // 分类列表
 export const classifyList: IClassifyItem[] = [
   {
+    name: "a", // 分类的字段
+    title: "位置尺寸", // 分类的名称
+    configList: [PROP_ENUM.x, PROP_ENUM.y, PROP_ENUM.width, PROP_ENUM.height],
+  },
+  {
     name: "b", // 分类的字段
     title: "背景色", // 分类的名称
     configList: [PROP_ENUM.fill],

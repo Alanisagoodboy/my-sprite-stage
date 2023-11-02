@@ -47,6 +47,7 @@ import {
   calcResizeBoxInfoWithoutRotate,
   calcMoveBoxInfoWithoutRotate,
   getSelectList,
+  getCoordinateInGroupFromStage,
 } from "../../utils/index";
 import { HANDLER } from "../../utils/types";
 
@@ -187,7 +188,8 @@ const transform = computed(() => {
   return `${rotateStr} ${translateStr}`;
 });
 
-let boxInfo = {};
+// 做一个缓存，保存当前拖拽的盒子信息，坐标是舞台上的坐标
+let boxInfoInStage = {};
 
 function onDotMousedown(dotInfo: IDot, e: MouseEvent) {
   e.stopPropagation();
@@ -210,7 +212,7 @@ function onDotMousedown(dotInfo: IDot, e: MouseEvent) {
 
   const onMousemove = (moveEv: MouseEvent) => {
     setIsMoving(true);
-    boxInfo = calcResizeBoxInfoWithoutRotate({
+    boxInfoInStage = calcResizeBoxInfoWithoutRotate({
       stage: props.stage,
       handleType: dotInfo.side,
       rect: lastDragInfo,
@@ -219,11 +221,12 @@ function onDotMousedown(dotInfo: IDot, e: MouseEvent) {
       startEv: e,
       moveEv: moveEv,
     });
-    emit("resize", { ...boxInfo });
+    emitData("resize");
   };
   const onMouseup = (_e: MouseEvent) => {
     setIsMoving(false);
-    emit("resize-end", { ...boxInfo });
+
+    emitData("resize-end");
     document.removeEventListener("pointermove", onMousemove);
     document.removeEventListener("pointerup", onMouseup);
   };
@@ -265,10 +268,10 @@ async function onMousedown(e: MouseEvent) {
   });
 
   //代码丑陋, 输入只是点击，有可能会后触发mouseup，导致坐标数据是以前的，所以在计算出选中后吗，立马更新坐标数据
-  boxInfo = selectSprite.boundingBox;
+  boxInfoInStage = selectSprite.boundingBox;
   emit("select", { ...selectSprite });
 
-  // Object.assign(boxInfo, selectSprite.boundingBox);
+  // Object.assign(boxInfoInStage, selectSprite.boundingBox);
   // 如果不是鼠标左键 return
   if (e.button !== 0) return;
 
@@ -288,7 +291,7 @@ async function onMousedown(e: MouseEvent) {
 
   const onMousemove = (ev: MouseEvent) => {
     setIsMoving(true);
-    boxInfo = calcMoveBoxInfoWithoutRotate({
+    boxInfoInStage = calcMoveBoxInfoWithoutRotate({
       rect: lastDragInfo,
       stage: props.stage,
       needChangeRect,
@@ -296,11 +299,11 @@ async function onMousedown(e: MouseEvent) {
       startEv: e,
       moveEv: ev,
     });
-    emit("move", { ...boxInfo });
+    emitData("move");
   };
 
   const onMouseup = async (_e: MouseEvent) => {
-    emit("move-end", { ...boxInfo });
+    emitData("move-end");
     setIsMoving(false);
     // 移除document事件
     document.removeEventListener("pointermove", onMousemove, false);
@@ -354,22 +357,30 @@ function onRotateMousedown(e: MouseEvent) {
   // document.addEventListener("pointerup", onMouseup);
 }
 
-// const resList = [
-//   {
-//     display: 1,
-//     color: 2,
-//   },
-// ];
+function emitData(
+  type: "move" | "move-end" | "resize" | "resize-end" | "rotate"
+) {
+  // 如果是组内选中，那么肯定是由一个活跃精灵列表肯定只有一个
+  // 并且不在第一层
+  // if (props.activeSpriteList.length === 1) {
+  //   const sprite = props.activeSpriteList[0];
+  //   const find = props.spriteList.find((f) => f.id === sprite.id);
+  //   if (!find) {
+  //     // 将坐标转化为组内坐标
+  //     const pos = getCoordinateInGroupFromStage(sprite.id, props.spriteList);
+  //     console.log(pos, 'pos');
 
-// const localList = resList.map(m=> {
-//   const {display,...rest} = m
-//   return {
-//     ...rest,
-//     showLink: display
-//   }
-// })
+  //     pos && emit(type, { ...boxInfoInStage, x: pos.x, y: pos.y });
+  //     console.log("8888");
 
-// console.log(localList);
+  //     return;
+  //   } else {
+  //     emit(type, { ...boxInfoInStage });
+  //   }
+  // } else {
+  emit(type, { ...boxInfoInStage });
+  // }
+}
 </script>
 
 <style lang="scss"></style>

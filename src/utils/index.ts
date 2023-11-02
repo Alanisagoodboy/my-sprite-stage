@@ -1,3 +1,4 @@
+import { ICoordinate } from "./../components/meta-data/types";
 import {
   IBoundingBox,
   ICoordinate,
@@ -377,6 +378,8 @@ export function calcMoveBoxInfoWithoutRotate({
     };
   });
 
+  console.log(target, 'target123');
+  
   return {
     boundingBox, // 盒子信息
     offset, // 偏移量
@@ -470,6 +473,20 @@ function findById(
   }
   // 在此层级未找到，返回 null
   return null;
+}
+
+/**
+ * 根据给定的id数组，过滤出树状list中的结果
+ */
+function filterByIds(list: ISprite<any>[], ids: string[]) {
+  let result: ISprite<any>[] = [];
+  for (let i = 0; i < ids.length; i++) {
+    const item = findById(list, ids[i]);
+    if (item) {
+      result.push(item);
+    }
+  }
+  return result;
 }
 
 /**
@@ -1339,6 +1356,116 @@ function calculateDistance(
   return distance;
 }
 
+/**
+ * 获取树节点路径
+ * @param {string} curKey 树节点标识的值
+ * @param {Array<{id: string, children: Array<any>}>} data 树
+ * @returns {Array<{id: string}>} result 存放搜索到的树节点到顶部节点的路径节点
+ */
+function getPathByKey(curKey: string, data: Array<any>): Array<any> {
+  /** 存放搜索到的树节点到顶部节点的路径节点 */
+  let result: Array<{ id: string }> = [];
+  /**
+   * 路径节点追踪
+   * @param {string} curKey 树节点标识的值
+   * @param {Array<{id: string}>} path 存放搜索到的树节点到顶部节点的路径节点
+   * @param {Array<{id: string, children: Array<{id: string, children: Array<{id: string}>}>}>} data 树
+   * @returns undefined
+   */
+  let traverse = (
+    curKey: string,
+    path: Array<{ id: string }>,
+    data: Array<{
+      id: string;
+      children: Array<{
+        id: string;
+        children: Array<{ id: string }>;
+      }>;
+    }>
+  ): void => {
+    // 树为空时，不执行函数
+    if (data.length === 0) {
+      return;
+    }
+
+    // 遍历存放树的数组
+    for (let item of data) {
+      // 遍历的数组元素存入path参数数组中
+      path.push(item);
+      // 如果目的节点的id值等于当前遍历元素的节点id值
+      if (item.id === curKey) {
+        // 把获取到的节点路径数组path赋值到result数组
+        result = JSON.parse(JSON.stringify(path));
+        return;
+      }
+
+      // 当前元素的children是数组
+      const _children = Array.isArray(item.children) ? item.children : [];
+      // 递归遍历子数组内容
+      traverse(curKey, path, _children);
+      // 利用回溯思想，当没有在当前叶树找到目的节点，依次删除存入到的path数组路径
+      path.pop();
+    }
+  };
+  traverse(curKey, [], data);
+  // 返回找到的树节点路径
+  return result;
+}
+
+/**
+ * 根据id，转化组内坐标为舞台坐标
+ * 组内坐标转化为舞台坐标需要层层遍历累加父级的坐标
+ */
+
+function getCoordinateInStageFromGroup(id: string, spriteList: ISprite[]) {
+  const resArr: ISprite[] = getPathByKey(id, spriteList);
+
+  return resArr.reduce(
+    (pre, cur) => {
+      console.log(pre, cur, "pre, cur");
+
+      return {
+        x: pre.x + cur.boundingBox.x,
+        y: pre.y + cur.boundingBox.y,
+      };
+    },
+    { x: 0, y: 0 }
+  );
+}
+
+/**
+ * 根据id， 转化舞台坐标为组内坐标
+ */
+function getCoordinateInGroupFromStage(
+  id: string,
+  spriteList: ISprite[],
+  point: ICoordinate
+) {
+  if (!id || !spriteList || !point) {
+    console.error("Invalid arguments: id, spriteList, or point is missing.");
+    return;
+  }
+  const resArr: ISprite[] = getPathByKey(id, spriteList);
+  if (!resArr.length) {
+    console.error("No sprite found for the given id.");
+    return;
+  }
+
+  const a = resArr.slice(-1).reduce(
+    (pre, cur) => {
+      return {
+        x: pre.x + cur.boundingBox.x,
+        y: pre.y + cur.boundingBox.y,
+      };
+    },
+    { x: 0, y: 0 }
+  );
+  return {
+    x: point.x - a.x,
+    y: point.y - a.y,
+  };
+}
+
 export {
   getLength,
   getPoint,
@@ -1346,6 +1473,7 @@ export {
   getKeyVariable,
   degToRadian,
   findById, // 查找精灵
+  filterByIds, // 过滤精灵
   getHandlePoint, // 计算操作杆（句柄）的坐标点
   calcResizedBoxInfo, // 计算形变后的盒子模型信息
   findParentByClass, // 根据类名寻找父元素
@@ -1354,4 +1482,7 @@ export {
   isPointOnSegment, // 判断点是否在线段上
   distance, // 计算两点之间的距离
   calculateFixPointOnLine, // 在直线上求得定点的坐标
+  getPathByKey, // 获取树节点路径
+  getCoordinateInStageFromGroup, // 根据id，转化组内坐标为舞台坐标
+  getCoordinateInGroupFromStage, // 根据id， 转化舞台坐标为组内坐标
 };
