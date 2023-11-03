@@ -23,6 +23,7 @@ export const rectSpriteMeta: ISpriteMeta = {
         width: 160,
         height: 100,
       },
+      mode: 'edit' // 当前模式
     };
   },
   icon: new URL("../../../assets/icon/矩形.svg", import.meta.url).href,

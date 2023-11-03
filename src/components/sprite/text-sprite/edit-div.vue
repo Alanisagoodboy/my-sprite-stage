@@ -20,10 +20,11 @@ defineOptions({
 const props = defineProps<{
   // 文本内容
   content: any;
+  divMode: "edit" | "view";
   // 尺寸类型 fit-content跟随内容大小，auto 固定大小
   sizeType: "fit-content" | "auto";
 }>();
-const emits = defineEmits(["text-change", "size-change"]);
+const emits = defineEmits(["text-change", "mode-change"]);
 
 const mode = ref<"edit" | "view">("view");
 
@@ -45,6 +46,10 @@ onMounted(async () => {
   //   await nextTick();
   changeMode("view");
 });
+
+watch(()=> props.divMode, (modeType) => {
+  changeMode(modeType);
+})
 
 watch(
   () => props.content,
@@ -72,6 +77,8 @@ function changeMode(modeType: "edit" | "view") {
     mode.value = "view";
     textRender(props.content, true);
   }
+
+  emits("mode-change", mode.value)
 }
 
 function textRender(

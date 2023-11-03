@@ -8,7 +8,7 @@
         <button @click="redo">重做</button>
         <button @click="undo">撤销</button>
 
-        <button @click="addPoint">增加锚点</button>
+        <!-- <button @click="addPoint">增加锚点</button> -->
       </div>
     </div>
     <div class="content">
@@ -35,7 +35,7 @@
         </div>
       </div>
       <div class="center">
-        <ul class="ul" @dragstart="handleDragStart">
+        <ul class="ul" @dragstart="handleDragStart" @dragend="handleDragEnd">
           <li class="li" v-for="item of componentList" :title="item.title">
             <img
               :data-index="item.type"
@@ -63,9 +63,9 @@
             <!-- 精灵树渲染 -->
             <SpriteTree
               :spriteList="spriteList"
+              :mode="mode"
               :registerSpriteMetaMap="registerSpriteMetaMap"
               @updateSprite="updateSprite"
-              @handleSpriteDblClick="handleSpriteDblClick"
             />
 
             <!-- 活跃的精灵容器：提供移动旋转缩放选中的能力 -->
@@ -76,6 +76,7 @@
               :activeSpriteList="activeSpriteList"
               :spriteList="spriteList"
               :registerSpriteMetaMap="registerSpriteMetaMap"
+              @updateSprite="updateSprite"
               @move="move"
               @move-end="moveEnd"
               @rotate="rotate"
@@ -85,12 +86,13 @@
             />
 
             <!-- 锚点渲染器: 为线条或者部分图形增加辅助功能 -->
-            <!-- <AnchorPoints
+            <AnchorPoints
               :stage="stage"
+              :spriteList="spriteList"
               :activeSpriteList="activeSpriteList"
               @select="select"
               @anchor-point-move="handleAnchorPointMove"
-            /> -->
+            />
 
             <!-- 工具栏渲染器 -->
             <!-- <Toolbar :activeSpriteList="activeSpriteList"></Toolbar> -->
@@ -193,7 +195,57 @@ const history = new History();
 const stageRef = ref<InstanceType<typeof Stage> | null>(null);
 const contentWrapper = ref(null);
 // 精灵列表
-const spriteList = ref<ISprite[]>([]);
+const spriteList = ref<ISprite[]>([
+  {
+    id: "0.7680960015111178",
+    type: "GroupSprite",
+    attrs: { fill: "#eee" },
+    boundingBox: {
+      x: 605.9999847412109,
+      y: 389.6000061035156,
+      width: 429,
+      height: 250.39999389648438,
+    },
+    children: [
+      {
+        id: "0.8076409550127963",
+        type: "GroupSprite",
+        attrs: { fill: "#eee" },
+        boundingBox: { x: 160, y: 0, width: 269, height: 172 },
+        children: [
+          {
+            id: "0.26289797622942057",
+            type: "RectSprite",
+            attrs: {
+              fill: "#eee",
+              content: "",
+              stroke: "#398cfe",
+              strokeWidth: 1,
+            },
+            boundingBox: { x: 0, y: 0, width: 160, height: 100 },
+          },
+          {
+            id: "0.6414539690382224",
+            type: "RectSprite",
+            attrs: {
+              fill: "#eee",
+              content: "",
+              stroke: "#398cfe",
+              strokeWidth: 1,
+            },
+            boundingBox: { x: 109, y: 72, width: 160, height: 100 },
+          },
+        ],
+      },
+      {
+        id: "0.7944659051280896",
+        type: "RectSprite",
+        attrs: { fill: "#eee", content: "", stroke: "#398cfe", strokeWidth: 1 },
+        boundingBox: { x: 0, y: 150.39999389648438, width: 160, height: 100 },
+      },
+    ],
+  },
+]);
 // 活跃（被选中）状态的精灵列表
 const activeSpriteList = ref<Array<ISprite>>([]);
 
@@ -240,13 +292,15 @@ function handleDragStart(e: DragEvent) {
     e.dataTransfer!.setData("index", e.target.dataset.index!);
   }
 }
-
+let isDragging = false;
 function handleDragOver(e: DragEvent) {
   e.preventDefault();
+  isDragging = true; // 在元素被拖动时设置标志位
 }
 
 // 放入精灵到舞台
 function handleDrop(e: DragEvent) {
+  if (!isDragging) return; // 如果元素未被拖动，则不执行操作
   e.preventDefault();
   e.stopPropagation();
   console.log(e, "e.dataTransfer");
@@ -265,6 +319,9 @@ function handleDrop(e: DragEvent) {
   } else {
     throw new Error("精灵未注册或者数据不对");
   }
+}
+function handleDragEnd(e: DragEvent) {
+  isDragging = false; // 在元素拖动结束时清除标志位
 }
 // }
 
@@ -304,7 +361,7 @@ function updateSpriteBox(info: any) {
   if (target && target.length) {
     activeSpriteList.value.forEach((item: IActiveItem, index: number) => {
       const _data = { ...target[index] };
-      console.log(_data, "target[index]");
+
       item.boundingBox = { ..._data };
       // 如果是第一层，那么直接更新，否则将坐标转换为舞台坐标
       if (!topFindById(item.id)) {
@@ -355,7 +412,7 @@ function updateSpriteBox(info: any) {
  */
 
 function setActiveSpriteList(list: ISprite[] | ISprite) {
-  let _list = Array.isArray(list) ? list : [list];
+  let _list = JSON.parse(JSON.stringify(Array.isArray(list) ? list : [list]));
   activeSpriteList.value = _list.map((m) => {
     let { id, boundingBox } = m;
     // 如果不在第一层，那么就是相对组坐标，需要转换为舞台坐标
@@ -441,10 +498,10 @@ function select(info: any) {
 
 // 锚点移动时 待优化 todo
 function handleAnchorPointMove(info: any) {
-  const find = spriteList.value.find((f) => f.id === info.id);
-  if (find) {
-    Object.assign(find, info.sprite);
-  }
+  updateSprite(info);
+
+  const find = findById(spriteList.value, info.id);
+  setActiveSpriteList(find);
 }
 
 // 锚点移动结束
@@ -572,7 +629,9 @@ function handleMenuItemClick(menu: any) {
 /**
  * 增加锚点
  */
-const mode = ref("");
+
+//  当前操作的模式
+const mode = ref<IMode>("default");
 
 function addPoint() {
   if (mode.value === "addPoint") {
@@ -582,28 +641,12 @@ function addPoint() {
   }
 }
 
-// let group = [];
-function handleSpriteDblClick(sprite: ISprite) {
-  // 双击
-  // 2.如果双击到了一个精灵，并且这个精灵是组，则选中组
-  // 这里找到的精灵是是组内的数据，需要转换为坐标系中的数据
-  // 1.获取当前组的位置
-  // 也就是需要根据当前id一级一级找到父级，然后将所有父级的位置累加
-  const position = getCoordinateInStageFromGroup(sprite.id, spriteList.value);
-  if (position) {
-    const spriteInStage = JSON.parse(JSON.stringify(sprite));
-    const { x, y } = position;
-    spriteInStage.boundingBox.x = x;
-    spriteInStage.boundingBox.y = y;
-    activeSpriteList.value = [spriteInStage];
-  }
-}
-
 // 向后代注入当前注册的精灵信息
 provide("registerSpriteMetaMap", registerSpriteMetaMap);
 
 // // 向后代注入舞台所有数据信息
 provide("stageApi", {
+  mode: mode,
   stage: stage,
   spriteList: spriteList,
   activeSpriteList: activeSpriteList,

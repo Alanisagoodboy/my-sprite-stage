@@ -27,6 +27,8 @@ import { default_sprite_data } from "../../meta-data";
 const p = defineProps<{
   // 画布数据
   stage: IStage;
+  // 所有精灵
+  spriteList: ISprite[];
   // 活跃的精灵列表
   activeSpriteList: ISprite[];
 }>();
@@ -165,9 +167,7 @@ function handleMove(e: MouseEvent) {
     sprite: _sprite,
     targetPointsInStage: recordPointInfo.targetAnchorPoints,
   });
-  emits("anchor-point-move", {
-    ...info,
-  });
+  emits("anchor-point-move", info);
 }
 
 // 抬起

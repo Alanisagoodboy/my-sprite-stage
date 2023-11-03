@@ -231,7 +231,7 @@ export function calcResizeBoxInfoWithoutRotate({
     height: boundingBox.height - rect.height,
   };
 
-  const target = t5t.map((m) => {
+  const target = needChangeRect.map((m) => {
     return {
       x: ((m.x - rect.x) / rect.width) * boundingBox.width + boundingBox.x,
       y: ((m.y - rect.y) / rect.height) * boundingBox.height + boundingBox.y,
@@ -378,8 +378,6 @@ export function calcMoveBoxInfoWithoutRotate({
     };
   });
 
-  console.log(target, 'target123');
-  
   return {
     boundingBox, // 盒子信息
     offset, // 偏移量
@@ -407,8 +405,6 @@ export function getSelectList({ id, activeList, allList }: any) {
       target = [findInAll];
     }
   }
-
-  console.log(target, "target");
 
   return {
     boundingBox: getWrapperBoxInfo(target.map((m) => m.boundingBox)),
@@ -1422,8 +1418,6 @@ function getCoordinateInStageFromGroup(id: string, spriteList: ISprite[]) {
 
   return resArr.reduce(
     (pre, cur) => {
-      console.log(pre, cur, "pre, cur");
-
       return {
         x: pre.x + cur.boundingBox.x,
         y: pre.y + cur.boundingBox.y,
@@ -1451,7 +1445,7 @@ function getCoordinateInGroupFromStage(
     return;
   }
 
-  const a = resArr.slice(-1).reduce(
+  const a = resArr.slice(0, -1).reduce(
     (pre, cur) => {
       return {
         x: pre.x + cur.boundingBox.x,

@@ -37,6 +37,8 @@ const bind = computed(() => {
   };
 });
 
+
+
 const mode = inject("mode");
 
 function addPoint(e: MouseEvent) {

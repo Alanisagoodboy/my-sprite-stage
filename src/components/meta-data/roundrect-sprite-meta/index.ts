@@ -59,7 +59,7 @@ export const roundRectSpriteMeta: ISpriteMeta = {
             borderRadius
           }
         },
-        updateProps: [
+        stateSet: [
           {
             path: 'attrs.borderRadius',
             value: borderRadius

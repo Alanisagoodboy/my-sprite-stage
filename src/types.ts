@@ -8,7 +8,5 @@ export interface IStateSet {
   value: any;
 }
 
-export interface IMode {
-  handleType: string;
-  value: string;
-}
+// 当前操作模式
+export type IMode = "default" | "editText"

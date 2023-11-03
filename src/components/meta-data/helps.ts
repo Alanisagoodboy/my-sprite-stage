@@ -32,16 +32,8 @@ export function createAnchorsForLine() {
 
     return {
       id: sprite.id,
-      sprite: {
-        ...sprite,
-        boundingBox,
-        attrs: {
-          ...sprite.attrs,
-          points,
-        },
-      },
       // 需要更新的属性路径以及值
-      updateProps: [
+      stateSet: [
         {
           path: "boundingBox.x",
           value: boundingBox.x,

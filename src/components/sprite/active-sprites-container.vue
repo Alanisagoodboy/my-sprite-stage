@@ -48,6 +48,7 @@ import {
   calcMoveBoxInfoWithoutRotate,
   getSelectList,
   getCoordinateInGroupFromStage,
+findById,
 } from "../../utils/index";
 import { HANDLER } from "../../utils/types";
 
@@ -60,27 +61,40 @@ import {
   // type Ref,
   nextTick,
 } from "vue";
-import { IBoundingBox, IStage, ISprite } from "../meta-data/types";
+import { IBoundingBox, IStage, ISprite, SPRITE_NAME } from "../meta-data/types";
 
 import { getWrapperBoxInfo } from "../../utils/index";
 
-// function handleSelectExactly(e: MouseEvent) {
-//   // 双击选中
-//   // 1.如果是组，则选中确切点击的组
-//   const target = e.target as HTMLElement;
-//   console.log(target, 'exactly');
+function handleSelectExactly(e: MouseEvent) {
+  setIsMoving(false);
+  // 双击选中
+  // 1.如果是组，则选中确切点击的组
+  const spriteDom = findParentByClass(e.target, "sprite-container");
+  if (!spriteDom) return;
 
-// }
+  // 查找 id 点击的精灵的id
+  const id = spriteDom?.getAttribute("data-sprite-id");
+
+  const find = findById(props.spriteList, id);
+  if (find) {
+    if (!props.spriteList.find(f=>f.id === id)) {
+      console.log('dbl-select', id);
+      
+      emit("select", {target: {...find}});
+    }
+  }
+  
+}
 
 // const svgRef = inject("svgRef") as Ref<HTMLElement>;
 onMounted(() => {
   document.addEventListener("pointerdown", onMousedown, false);
-  // document.addEventListener("dblclick", handleSelectExactly, false)
+  document.addEventListener("dblclick", handleSelectExactly, false)
 });
 
 onUnmounted(() => {
   document.removeEventListener("pointerdown", onMousedown, false);
-  // document.removeEventListener("dblclick", handleSelectExactly, false)
+  document.removeEventListener("dblclick", handleSelectExactly, false)
 });
 
 const dotSize = 6;
@@ -111,6 +125,7 @@ const emit = defineEmits([
   "resize-end",
   "rotate",
   "select",
+  'updateSprite'
 ]);
 
 type IDot = {
@@ -216,7 +231,7 @@ function onDotMousedown(dotInfo: IDot, e: MouseEvent) {
       stage: props.stage,
       handleType: dotInfo.side,
       rect: lastDragInfo,
-      5,
+      needChangeRect,
       staticRectList,
       startEv: e,
       moveEv: moveEv,
@@ -378,6 +393,7 @@ function emitData(
   //     emit(type, { ...boxInfoInStage });
   //   }
   // } else {
+
   emit(type, { ...boxInfoInStage });
   // }
 }

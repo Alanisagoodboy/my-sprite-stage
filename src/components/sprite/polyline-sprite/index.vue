@@ -9,11 +9,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed, inject, ref } from "vue";
+import { computed, inject } from "vue";
 import { ICoordinate, type ISprite } from "../../../components/meta-data/types";
 import {
   calculateFixPointOnLine,
-  distance,
   findNearestSegment,
 } from "../../../utils";
 // import { calculateIntersectionPoin } from "../../../utils";

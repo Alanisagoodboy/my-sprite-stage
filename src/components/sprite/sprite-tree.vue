@@ -16,8 +16,8 @@
         <sprite-tree
           :spriteList="sprite.children"
           :registerSpriteMetaMap="registerSpriteMetaMap"
+          :mode="mode"
           @updateSprite="updateSprite"
-          @handleSpriteDblClick="handleSpriteDblClick"
         ></sprite-tree>
       </g>
     </template>
@@ -25,14 +25,15 @@
       <component
         :is="registerSpriteMetaMap[sprite.type].component"
         :sprite="sprite"
+        :mode="mode"
         @updateSprite="updateSprite"
-        @dblclick="handleSpriteDblClick(sprite)"
       ></component>
     </template>
   </SpriteContainer>
 </template>
 
 <script setup lang="ts">
+import { IMode } from "../../types";
 import { ISprite } from "../meta-data/types";
 import SpriteContainer from "./sprite-container.vue";
 
@@ -42,17 +43,14 @@ defineOptions({
 
 defineProps<{
   spriteList: ISprite[];
+  mode:IMode;
   registerSpriteMetaMap: any;
 }>();
 
-const emits = defineEmits(["updateSprite", "handleSpriteDblClick"]);
+const emits = defineEmits(["updateSprite"]);
 
 function updateSprite(...arg: any[]) {
   emits("updateSprite", ...arg);
-}
-
-function handleSpriteDblClick(sprite: ISprite) {
-  emits("handleSpriteDblClick", sprite);
 }
 </script>
 

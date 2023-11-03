@@ -1,4 +1,3 @@
-import { IBoundingBox } from './types';
 import { Component } from "vue";
 export enum SPRITE_NAME {
   TEXT = "TextSprite", // 文本
@@ -43,6 +42,7 @@ export interface ISprite<IProps = any> {
   type: SPRITE_NAME; // 精灵名字/类型
   attrs: IProps; // 属性
   boundingBox: IBoundingBox;
+  mode?: "view" | "edit" | "select"; // 精灵模式
   children?: Array<ISprite<IProps>>;
 }
 
@@ -86,13 +86,6 @@ export interface IPort {
   spriteId: string;
   // 连接桩在所属的精灵中的索引
   index: number;
-}
-
-// 活跃精灵 id 位置尺寸信息, 类型信息
-export interface IActiveItem {
-  id: string,
-  type?: SPRITE_NAME,
-  boundingBox: IBoundingBox,
 }
 
 // // 连接线精灵的属性

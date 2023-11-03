@@ -5,11 +5,13 @@
     <foreignObject v-bind="foBind">
       <div class="content-wrapper">
         <EditDiv
+          :divMode="sprite.mode === 'edit' ? 'edit' : 'view'"
           :style="contentStyle"
           ref="editDivRef"
           :content="sprite.attrs.content"
           size-type="auto"
           @text-change="handleTextChange"
+          @mode-change="handleModeChange"
         />
       </div>
     </foreignObject>
@@ -41,6 +43,17 @@ function handleTextChange(info: any) {
       {
         path: "attrs.content",
         value: info.content,
+      },
+    ],
+  });
+}
+function handleModeChange(mode: string) {
+  emits("updateSprite", {
+    id: props.sprite.id,
+    stateSet: [
+      {
+        path: "mode",
+        value: mode,
       },
     ],
   });
