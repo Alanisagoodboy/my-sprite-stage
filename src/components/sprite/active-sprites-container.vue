@@ -47,8 +47,7 @@ import {
   calcResizeBoxInfoWithoutRotate,
   calcMoveBoxInfoWithoutRotate,
   getSelectList,
-  getCoordinateInGroupFromStage,
-findById,
+  findById,
 } from "../../utils/index";
 import { HANDLER } from "../../utils/types";
 
@@ -77,27 +76,34 @@ function handleSelectExactly(e: MouseEvent) {
 
   const find = findById(props.spriteList, id);
   if (find) {
-    if (!props.spriteList.find(f=>f.id === id)) {
-      console.log('dbl-select', id);
-      
-      emit("select", {target: {...find}});
-    }
+    // 如果不是第一层,那么选中
+    // if (!props.spriteList.find((f) => f.id === id)) {
+
+    // }
+
+    // 如果不是组，则开启编辑模式
+    emits("select", {
+      target: find,
+      mode: find.type === SPRITE_NAME.GROUP ? "default" : "edit",
+    });
   }
-  
 }
 
 // const svgRef = inject("svgRef") as Ref<HTMLElement>;
 onMounted(() => {
   document.addEventListener("pointerdown", onMousedown, false);
-  document.addEventListener("dblclick", handleSelectExactly, false)
+  document.addEventListener("dblclick", handleSelectExactly, false);
 });
 
 onUnmounted(() => {
   document.removeEventListener("pointerdown", onMousedown, false);
-  document.removeEventListener("dblclick", handleSelectExactly, false)
+  document.removeEventListener("dblclick", handleSelectExactly, false);
 });
 
-const dotSize = 6;
+const dotSize = computed(() => {
+  const size = 6;
+  return size / props.stage.scale;
+});
 
 // 是否正在拖拽
 const isMoving = ref(false);
@@ -118,14 +124,14 @@ const props = defineProps<{
   // 辅助线
   auxiliaryLineList: any[];
 }>();
-const emit = defineEmits([
+const emits = defineEmits([
   "move",
   "move-end",
   "resize",
   "resize-end",
   "rotate",
   "select",
-  'updateSprite'
+  "updateSprite",
 ]);
 
 type IDot = {
@@ -276,15 +282,17 @@ async function onMousedown(e: MouseEvent) {
   const id = spriteDom?.getAttribute("data-sprite-id");
   console.log(id, "id");
 
-  const selectSprite = getSelectList({
+  const { target, boundingBox } = getSelectList({
     id,
     activeList: props.activeSpriteList,
     allList: props.spriteList,
   });
 
   //代码丑陋, 输入只是点击，有可能会后触发mouseup，导致坐标数据是以前的，所以在计算出选中后吗，立马更新坐标数据
-  boxInfoInStage = selectSprite.boundingBox;
-  emit("select", { ...selectSprite });
+  boxInfoInStage = boundingBox;
+  emits("select", { target });
+
+
 
   // Object.assign(boxInfoInStage, selectSprite.boundingBox);
   // 如果不是鼠标左键 return
@@ -292,6 +300,13 @@ async function onMousedown(e: MouseEvent) {
 
   // 传出事件，再等待新的props
   await nextTick();
+
+  // const editMode = target.some((s) => s.mode === "edit");
+  // console.log(editMode, 'editMode');
+  
+  // 如果是编辑模式，直接 return
+  // if (editMode) return;
+
   const lastDragInfo = getActiveBoxInfo();
   const needChangeRect: IBoundingBox[] = JSON.parse(
     JSON.stringify(props.activeSpriteList)
@@ -394,7 +409,7 @@ function emitData(
   //   }
   // } else {
 
-  emit(type, { ...boxInfoInStage });
+  emits(type, { ...boxInfoInStage });
   // }
 }
 </script>

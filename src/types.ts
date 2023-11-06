@@ -7,6 +7,3 @@ export interface IStateSet {
   path: string;
   value: any;
 }
-
-// 当前操作模式
-export type IMode = "default" | "editText"

@@ -3,6 +3,7 @@
     width="100%"
     height="100%"
     :viewBox="`0 0 ${stage.width} ${stage.height}`"
+    
   >
     <rect
       x="0"
@@ -11,7 +12,7 @@
       :height="stage.height"
       stroke="#398cfe"
       stroke-width="1"
-      fill="#ccc"
+      :fill="stage.backgroundColor"
     ></rect>
     <!-- 精灵树渲染 -->
     <SpriteTree

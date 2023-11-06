@@ -1,6 +1,6 @@
 <template>
   <div class="panel-wrapper">
-    <div>id: {{ form.id }}</div>
+    <div>id: {{ form?.id }}</div>
     <el-collapse
       class="panel-content"
       :model-value="classList.map((m: IClassifyItem) => m.name)"
@@ -46,8 +46,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, inject, watchEffect, type Ref, ref } from "vue";
-import { ISprite, SPRITE_NAME } from "../meta-data/types";
+import { computed } from "vue";
+import { ISprite, IStage, SPRITE_NAME } from "../meta-data/types";
 import { default_sprite_data } from "../meta-data/index";
 
 // @ts-ignore
@@ -56,29 +56,29 @@ import {
   IClassifyItem,
   IConfigSchema,
 } from "../meta-data/rect-sprite-meta/attrs-meta/types";
+import { findById } from "../../utils";
 
-// const spriteList = inject<ISprite[]>("spriteList", []);
-// const activeSpriteList = inject<ISprite[]>("activeSpriteList", []);
-
-const stageApi = inject<{
-  spriteList: Ref<ISprite[]>;
-  activeSpriteList: Ref<ISprite[]>;
-}>("stageApi", {
-  spriteList: ref([]),
-  activeSpriteList: ref([]),
-});
+const props = defineProps<{
+  // 画布数据
+  stage: IStage;
+  // 所有精灵
+  spriteList: ISprite[];
+  // 活跃的精灵列表
+  activeSpriteList: ISprite[];
+}>();
 
 const emits = defineEmits(["updateSprite"]);
 
 // 属性配置
 const attrsConfig = computed(() => {
   try {
-    if (stageApi.activeSpriteList.value.length === 1) {
-      const sprite = stageApi.activeSpriteList.value[0];
+    if (props.activeSpriteList.length === 1) {
+      const sprite = findById(props.spriteList, props.activeSpriteList[0].id);
+      if (!sprite) return null;
       const { type } = sprite;
       const attrsConfig = default_sprite_data[type].attrsConfig;
-      return attrsConfig || null;
-    } else if (stageApi.activeSpriteList.value.length > 1) {
+      return attrsConfig;
+    } else if (props.activeSpriteList.length > 1) {
       const attrsConfig = default_sprite_data[SPRITE_NAME.GROUP].attrsConfig;
       return attrsConfig || null;
     } else {
@@ -112,10 +112,12 @@ const classList = computed(() => {
 });
 
 const form = computed(() => {
-  if (stageApi.activeSpriteList.value.length === 1) {
-    return stageApi.activeSpriteList.value[0];
-  } else if (stageApi.activeSpriteList.value.length > 1) {
-    return { ...stageApi.activeSpriteList.value[0], id: "多个" };
+  if (props.activeSpriteList.length === 1) {
+    const sprite = findById(props.spriteList, props.activeSpriteList[0].id);
+    return sprite;
+  } else if (props.activeSpriteList.length > 1) {
+    const sprite = findById(props.spriteList, props.activeSpriteList[0].id);
+    return { ...sprite, id: "多个" };
   } else {
     return { id: null };
   }
@@ -137,7 +139,7 @@ function getValueFromModel(item: IConfigSchema) {
 // 设置传出数据
 function setValueToModel(val: any, item: IConfigSchema) {
   emits("updateSprite", {
-    id: stageApi.activeSpriteList.value
+    id: props.activeSpriteList
       .filter((f) => f.type !== SPRITE_NAME.GROUP)
       .map((m) => m.id),
     stateSet: {

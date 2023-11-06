@@ -5,7 +5,9 @@
     xmlns="http://www.w3.org/2000/svg"
     :height="height"
     :width="width"
-    style="outline: 1px solid #398cfe"
+    :style="{
+      'background-color': backgroundColor,
+    }"
     ref="svgRef"
     :viewBox="`0, 0, ${width}, ${height}`"
     :transform="`scale(${scale}) translate(${d.dx}, ${d.dy})`"
@@ -33,6 +35,7 @@ const props = defineProps({
   width: [Number, String],
   height: [Number, String],
   scale: [Number],
+  backgroundColor: [String],
 });
 const emits = defineEmits(["stage-scale"]);
 
@@ -53,19 +56,19 @@ function mousewheel(e: WheelEvent) {
 onMounted(() => {});
 
 function mousedown(e: MouseEvent) {
-  if (!e.ctrlKey) return
+  if (!e.ctrlKey) return;
   let downX = e.clientX;
   let downY = e.clientY;
 
   const lastPoint = {
-    ...d
-  }
+    ...d,
+  };
   // const gx = group.transform("translateX") as any as number;
   // const gy = group.transform("translateY") as any as number;
 
   function mousemove(event: MouseEvent) {
     d.dx = event.clientX - downX + lastPoint.dx;
-    d.dy = event.clientY - downY + lastPoint.dy
+    d.dy = event.clientY - downY + lastPoint.dy;
   }
 
   function mouseup() {

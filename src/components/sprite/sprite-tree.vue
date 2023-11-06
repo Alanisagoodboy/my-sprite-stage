@@ -16,7 +16,6 @@
         <sprite-tree
           :spriteList="sprite.children"
           :registerSpriteMetaMap="registerSpriteMetaMap"
-          :mode="mode"
           @updateSprite="updateSprite"
         ></sprite-tree>
       </g>
@@ -25,7 +24,6 @@
       <component
         :is="registerSpriteMetaMap[sprite.type].component"
         :sprite="sprite"
-        :mode="mode"
         @updateSprite="updateSprite"
       ></component>
     </template>
@@ -33,7 +31,6 @@
 </template>
 
 <script setup lang="ts">
-import { IMode } from "../../types";
 import { ISprite } from "../meta-data/types";
 import SpriteContainer from "./sprite-container.vue";
 
@@ -43,7 +40,7 @@ defineOptions({
 
 defineProps<{
   spriteList: ISprite[];
-  mode:IMode;
+
   registerSpriteMetaMap: any;
 }>();
 

@@ -34,6 +34,7 @@ export interface IStage {
   width: number; // 宽
   height: number; // 高
   scale: number; // 缩放（0~1）
+  backgroundColor: string; // 背景色
 }
 
 // 精灵
@@ -42,9 +43,12 @@ export interface ISprite<IProps = any> {
   type: SPRITE_NAME; // 精灵名字/类型
   attrs: IProps; // 属性
   boundingBox: IBoundingBox;
-  mode?: "view" | "edit" | "select"; // 精灵模式
+  mode?: Mode; // 精灵模式
   children?: Array<ISprite<IProps>>;
 }
+
+// 精灵当前操作模式
+type Mode = 'default' | 'edit'
 
 // 默认图形props
 export interface IDefaultGraphicProps {

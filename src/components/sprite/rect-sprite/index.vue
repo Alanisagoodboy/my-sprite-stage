@@ -5,13 +5,11 @@
     <foreignObject v-bind="foBind">
       <div class="content-wrapper">
         <EditDiv
-          :divMode="sprite.mode === 'edit' ? 'edit' : 'view'"
-          :style="contentStyle"
           ref="editDivRef"
+          :style="contentStyle"
           :content="sprite.attrs.content"
           size-type="auto"
           @text-change="handleTextChange"
-          @mode-change="handleModeChange"
         />
       </div>
     </foreignObject>
@@ -21,7 +19,9 @@
 import { ISprite } from "../../meta-data/types";
 import { computed, ref } from "vue";
 
-import EditDiv from "../text-sprite/edit-div.vue";
+import useHandleTextChange from "../../../hooks/useHandleTextChange.ts";
+
+import EditDiv from "../../common/edit-div.vue";
 defineOptions({
   name: "rect-sprite",
 });
@@ -30,34 +30,8 @@ const props = defineProps<{
   sprite: ISprite;
 }>();
 const emits = defineEmits(["updateSprite"]);
-const editDivRef = ref<InstanceType<typeof EditDiv>>();
-// 进入文本编辑模式
-function toEdit() {
-  editDivRef.value?.changeMode("edit");
-}
-
-function handleTextChange(info: any) {
-  emits("updateSprite", {
-    id: props.sprite.id,
-    stateSet: [
-      {
-        path: "attrs.content",
-        value: info.content,
-      },
-    ],
-  });
-}
-function handleModeChange(mode: string) {
-  emits("updateSprite", {
-    id: props.sprite.id,
-    stateSet: [
-      {
-        path: "mode",
-        value: mode,
-      },
-    ],
-  });
-}
+const editDivRef = ref<InstanceType<typeof EditDiv> | null>(null);
+const { handleTextChange } = useHandleTextChange(props, emits, editDivRef);
 
 const foBind = computed(() => {
   const { width, height } = props.sprite?.boundingBox;

@@ -5,7 +5,7 @@
     :transform="`translate(${sprite.boundingBox.x} ${sprite.boundingBox.y})`"
   >
     <circle
-      r="4"
+      :r="r"
       :cx="point.x"
       :cy="point.y"
       v-for="(point, index) of anchorPoints"
@@ -38,6 +38,11 @@ const emits = defineEmits([
   "select",
   "anchor-point-move-end",
 ]);
+
+const r = computed(()=> {
+  const size = 4
+  return size / p.stage.scale
+})
 
 // 渲染的锚点信息
 const anchorPointsList = computed(() => {

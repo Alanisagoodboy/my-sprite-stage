@@ -13,7 +13,7 @@
     </div>
     <div class="content">
       <div class="left">
-        <div class="left-top" v-split.bottom>
+        <div class="left-top">
           <p>预览</p>
           <div class="preview-container">
             <PreviewWindowSprite
@@ -54,16 +54,15 @@
             @dragover="handleDragOver"
           >
             <!-- 网格线 -->
-            <GridLines
+            <!-- <GridLines
               :width="stage.width"
               :height="stage.height"
               :spacing="50"
-            />
+            /> -->
 
             <!-- 精灵树渲染 -->
             <SpriteTree
               :spriteList="spriteList"
-              :mode="mode"
               :registerSpriteMetaMap="registerSpriteMetaMap"
               @updateSprite="updateSprite"
             />
@@ -122,6 +121,7 @@
         <!-- 属性面板渲染器 -->
         <AttrsPanel
           :stage="stage"
+          :spriteList="spriteList"
           :activeSpriteList="activeSpriteList"
           @updateSprite="updateSprite"
         />
@@ -135,17 +135,16 @@ import Stage from "./components/stage/index.vue";
 import SpriteTree from "./components/sprite/sprite-tree.vue";
 import ActiveSpritesContainer from "./components/sprite/active-sprites-container.vue";
 import AnchorPoints from "./components/stage/anchor-point/anchor-points.vue";
-import GridLines from "./components/stage/grid-line.vue";
+// import GridLines from "./components/stage/grid-line.vue";
 import SelectArea from "./components/stage/select-area.vue";
 import AttrsPanel from "./components/attrs-panel/index.vue";
-import ContextMenu from "./components/context-menu/index.vue";
+// import ContextMenu from "./components/context-menu/index.vue";
 import PreviewWindowSprite from "./components/sprite/preview-window-sprite/index.vue";
 // import AuxiliaryLine from "./components/stage/auxiliary-line.vue";
-import Toolbar from "./components/sprite/toolbar-sprite.vue";
+// import Toolbar from "./components/sprite/toolbar-sprite.vue";
 
-import { ref, shallowRef, provide, reactive } from "vue";
-
-import { resize as vSplit } from "./directive";
+import { ref, shallowRef, provide, reactive, onMounted } from "vue";
+// import { useResizeObserver } from "@vueuse/core";
 
 import { default_sprite_data } from "./components/meta-data/index";
 
@@ -156,7 +155,6 @@ import { History } from "./utils/history";
 // import { getCoordinateInStage } from "../../"
 
 import {
-  IActiveItem,
   ICoordinate,
   ISprite,
   ISpriteMeta,
@@ -187,6 +185,22 @@ const stage = reactive({
   width: 1920,
   height: 1080,
   scale: 1,
+  backgroundColor: "#fff",
+});
+
+// 初始化的时候，计算合适的缩放比例
+onMounted(() => {
+  const contentWrapper = document.querySelector(".center");
+  console.log("contentWrapper", contentWrapper, "contentWrapper");
+  if (contentWrapper) {
+    const { width, height } = contentWrapper.getBoundingClientRect();
+    // 计算横向的缩放比例，与纵向的缩放比例，取最小值,这里减10，是为了让图形与四周有个间隙，避免贴合太近不容易看清边框
+    const scale = Math.min(
+      (width - 10) / stage.width,
+      (height - 10) / stage.height
+    );
+    stage.scale = scale;
+  }
 });
 
 // 历史记录
@@ -490,9 +504,20 @@ function updateSprite(updateParams: IUpdateParams, _mode?: IMode) {
 
 // 选中精灵 时 根据id找到当前点击的精灵的信息
 function select(info: any) {
-  const { target } = info;
+  const { target, mode } = info;
   if (target) {
     setActiveSpriteList(target);
+  }
+
+  if (mode) {
+    console.log("mdoe", mode);
+    updateSprite({
+      id: target.id,
+      stateSet: {
+        path: "mode",
+        value: mode,
+      },
+    });
   }
 }
 
@@ -503,6 +528,14 @@ function handleAnchorPointMove(info: any) {
   const find = findById(spriteList.value, info.id);
   setActiveSpriteList(find);
 }
+
+onMounted(() => {
+  setTimeout(() => {
+    const a = spriteList.value[0];
+    console.log(_.set(a, "mode", "112"), '"kkjhnklsajhfs"');
+    console.log(_.get(a, "mode", "112"), '"kkjhnklsajhfs"');
+  }, 1000);
+});
 
 // 锚点移动结束
 // function handleAnchorPointMoveEnd(info: any) {}
@@ -724,6 +757,7 @@ body {
 
 .center {
   flex: 1;
+  min-width: 0;
 
   /* display: flex;
   justify-content: center;
@@ -737,18 +771,19 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+
+  box-sizing: border-box;
 }
 
 .center-content {
   /* height: 100%;
   width: 100%; */
-  /* overflow: auto; */
-  /* margin: auto; */
 }
 
 .left {
   background-color: aqua;
   width: 300px;
+
   height: 100%;
 }
 .left-top {
@@ -764,6 +799,7 @@ body {
 .right {
   background-color: bisque;
   width: 300px;
+
   height: 100%;
 }
 

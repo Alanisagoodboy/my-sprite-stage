@@ -13,7 +13,7 @@ export const rectSpriteMeta: ISpriteMeta = {
       attrs: {
         // fill: "#fdc5bf"
         fill: "#eee",
-        content: '',
+        content: '2',
         stroke: "#398cfe",
         strokeWidth: 1,
       },
@@ -23,7 +23,7 @@ export const rectSpriteMeta: ISpriteMeta = {
         width: 160,
         height: 100,
       },
-      mode: 'edit' // 当前模式
+      mode: 'default'
     };
   },
   icon: new URL("../../../assets/icon/矩形.svg", import.meta.url).href,
