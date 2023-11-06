@@ -20,6 +20,7 @@ import EditDiv from "../../common/edit-div.vue";
 import { ISprite } from "../../meta-data/types";
 
 import useHandleTextChange from "../../../hooks/useHandleTextChange.ts";
+import { ref } from "vue";
 
 defineOptions({
   name: "text-sprite",
