@@ -44,7 +44,7 @@
               alt=""
             />
           </li>
-        </ul>
+        </ul> 
         <div class="center-content" ref="contentWrapper">
           <Stage
             ref="stageRef"
