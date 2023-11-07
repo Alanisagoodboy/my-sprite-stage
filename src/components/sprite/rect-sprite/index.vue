@@ -17,7 +17,7 @@
 </template>
 <script setup lang="ts">
 import { ISprite } from "../../meta-data/types";
-import { computed, ref } from "vue";
+import { computed, ref} from "vue";
 
 import useHandleTextChange from "../../../hooks/useHandleTextChange.ts";
 

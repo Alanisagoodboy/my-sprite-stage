@@ -1,7 +1,7 @@
 /**
  * 文本传输钩子
  */
-import { watch,type Ref } from "vue";
+import { watch,nextTick,type Ref } from "vue";
 import EditDiv from "../components/common/edit-div.vue";
 import { ISprite } from "../components/meta-data/types";
 export default function useHandleTextChange(
@@ -10,7 +10,9 @@ export default function useHandleTextChange(
   editDivRef: Ref<InstanceType<typeof EditDiv> | null>,
 ) {
   // 进入文本编辑模式
-  function toEdit() {
+  async function toEdit() {
+    // editDivRef.value!.handleBlur();
+    // await nextTick()
     editDivRef.value!.changeMode(true);
   }
 

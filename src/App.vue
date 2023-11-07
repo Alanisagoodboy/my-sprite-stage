@@ -166,7 +166,7 @@ import {
   getCoordinateInStage,
   getCoordinateInStageFromGroup,
 } from "./utils";
-import { IMode, IUpdateParams } from "./types";
+import { IStateSet, IUpdateParams } from "./types";
 
 const componentList = Object.values(default_sprite_data)
   .filter((f) => f.type !== SPRITE_NAME.GROUP)
@@ -334,7 +334,7 @@ function handleDrop(e: DragEvent) {
     throw new Error("精灵未注册或者数据不对");
   }
 }
-function handleDragEnd(e: DragEvent) {
+function handleDragEnd() {
   isDragging = false; // 在元素拖动结束时清除标志位
 }
 // }
@@ -353,16 +353,28 @@ function addSpriteToStage({
   const spriteMeta = default_sprite_data[name];
 
   const sprite = spriteMeta.createInitData();
+  spriteList.value.push(sprite);
+
   const _point = getCoordinateInStage(
     stageRef.value!.svgRef as HTMLElement,
     point,
     stage.scale
   );
-  sprite.boundingBox.x = _point.x;
-  sprite.boundingBox.y = _point.y;
-  spriteList.value.push(sprite);
-  setActiveSpriteList(sprite);
 
+  updateSprite({
+    id: sprite.id,
+    stateSet: [
+      {
+        path: "boundingBox.x",
+        value: _point.x,
+      },
+      {
+        path: "boundingBox.y",
+        value: _point.y,
+      },
+    ],
+  });
+  setActiveSpriteList(sprite);
   history.push(JSON.parse(JSON.stringify(spriteList.value)));
 }
 
@@ -373,7 +385,7 @@ function updateSpriteBox(info: any) {
   const { target, lines = [] } = info;
 
   if (target && target.length) {
-    activeSpriteList.value.forEach((item: IActiveItem, index: number) => {
+    activeSpriteList.value.forEach((item: ISprite, index: number) => {
       const _data = { ...target[index] };
 
       item.boundingBox = { ..._data };
@@ -384,7 +396,6 @@ function updateSpriteBox(info: any) {
           spriteList.value,
           _data
         );
-        console.log(pos, "pos");
 
         if (pos) {
           _data.x = pos.x;
@@ -419,28 +430,53 @@ function updateSpriteBox(info: any) {
 }
 
 /**
- * 选中精灵列表其实是基于舞台的
- * 所以需要单独维护渲染出的选中精灵列表中的精灵数据
- * 也就是保存在选中精灵列表中的数据应该是精灵在舞台中的数据
- * @param
+ * 添加活跃精灵列表
  */
 
+//
 function setActiveSpriteList(list: ISprite[] | ISprite) {
   let _list = JSON.parse(JSON.stringify(Array.isArray(list) ? list : [list]));
-  activeSpriteList.value = _list.map((m) => {
-    let { id, boundingBox } = m;
-    // 如果不在第一层，那么就是相对组坐标，需要转换为舞台坐标
-    const find = topFindById(id);
+  activeSpriteList.value = _list;
+}
 
-    if (!find) {
-      const point = getCoordinateInStageFromGroup(id, spriteList.value);
-      Object.assign(boundingBox, point);
+/**
+ * @description 更新活跃的精灵列表：如果更新了列表中的数据，也在活跃精灵列表中，那么需要更新
+ *              保存在活跃精灵列表中的精灵与精灵列表中的数据坐标系可能是不同的，所以需要分别保存分别更新
+ * @param ids 精灵id
+ */
+function updateActiveSprite(updateParams: IUpdateParams) {
+  const { id, stateSet } = updateParams;
+  const _ids = Array.isArray(id) ? id : [id];
+  _ids.forEach((id) => {
+    const find = activeSpriteList.value.find((f) => f.id === id);
+    if (find) {
+      updateState(find, stateSet);
     }
-    return {
-      ...m,
-      boundingBox: { ...boundingBox },
-    };
   });
+}
+
+/**
+ *
+ * @param sprite 精灵
+ * @param stateSet 状态设置器
+ */
+function updateState(sprite: ISprite, stateSet: IStateSet | IStateSet[]) {
+  // 状态设置器有值
+  if (stateSet) {
+    const _stateSet = Array.isArray(stateSet) ? stateSet : [stateSet];
+
+    // 遍历设置器
+    _stateSet.forEach((item) => {
+      _.set(sprite, item.path, item.value, "error");
+    });
+  }
+
+  // 如果是第一层，那么直接更新，否则将坐标转换为舞台坐标r
+  const isFirstFloor = topFindById(sprite.id);
+  if (!isFirstFloor) {
+    const point = getCoordinateInStageFromGroup(sprite.id, spriteList.value);
+    Object.assign(sprite.boundingBox, point);
+  }
 }
 
 //  查找id是不是第一层，如果是返回当前精灵
@@ -494,12 +530,7 @@ function updateSprite(updateParams: IUpdateParams, _mode?: IMode) {
       }
     }
   });
-
-  if (_mode) {
-    mode.value = _mode.value;
-  } else {
-    mode.value = "";
-  }
+  updateActiveSprite(updateParams);
 }
 
 // 选中精灵 时 根据id找到当前点击的精灵的信息
@@ -510,7 +541,6 @@ function select(info: any) {
   }
 
   if (mode) {
-    console.log("mdoe", mode);
     updateSprite({
       id: target.id,
       stateSet: {
@@ -524,18 +554,7 @@ function select(info: any) {
 // 锚点移动时 待优化 todo
 function handleAnchorPointMove(info: any) {
   updateSprite(info);
-
-  const find = findById(spriteList.value, info.id);
-  setActiveSpriteList(find);
 }
-
-onMounted(() => {
-  setTimeout(() => {
-    const a = spriteList.value[0];
-    console.log(_.set(a, "mode", "112"), '"kkjhnklsajhfs"');
-    console.log(_.get(a, "mode", "112"), '"kkjhnklsajhfs"');
-  }, 1000);
-});
 
 // 锚点移动结束
 // function handleAnchorPointMoveEnd(info: any) {}

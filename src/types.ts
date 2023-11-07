@@ -1,5 +1,5 @@
 export interface IUpdateParams {
-  id: string;
+  id: string | string[];
   stateSet: IStateSet | IStateSet[];
 }
 

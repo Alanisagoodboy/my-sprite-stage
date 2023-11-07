@@ -2,13 +2,12 @@
 <template>
   <div
     ref="editDivRef"
-    xmlns="http://www.w3.org/1999/xhtml"
     :contenteditable="textInfo.contenteditable"
     spellcheck="false"
     :class="{
       'auto-size': sizeType === 'auto',
       'fit-content': sizeType !== 'auto',
-      'preview': !textInfo.contenteditable,
+      preview: !textInfo.contenteditable,
     }"
     @input="handleTextInput"
     @blur="handleBlur"
@@ -16,6 +15,7 @@
   ></div>
 </template>
 <script setup lang="ts">
+import { throttle } from "lodash";
 import { onMounted, reactive, ref, nextTick, watch } from "vue";
 defineOptions({
   name: "text-div",
@@ -24,15 +24,15 @@ defineOptions({
 const props = defineProps<{
   // 文本内容
   content: any;
-  // 尺寸类型 fit-content跟随内容大小，auto 固定大小
+  // 尺寸类型 fit-content跟随内容大小，auto 跟随容器大小
   sizeType: "fit-content" | "auto";
 }>();
-const emits = defineEmits(["text-change"]);
+const emits = defineEmits(["text-change", "size-change"]);
 
 const textInfo = reactive({
   width: 0, // 宽
   height: 0, // 高
-  content: '', // 内容
+  content: "", // 内容
   contenteditable: false,
 });
 const editDivRef = ref<HTMLDivElement | null>(null);
@@ -42,22 +42,32 @@ function autoCalcTextSize() {
   const rect = editDivRef.value!.getBoundingClientRect();
   textInfo.height = rect.height;
   textInfo.width = Math.max(48, rect.width);
+
+  console.log(rect, "rect");
+
+  emits("size-change", {
+    width: textInfo.width,
+    height: textInfo.height,
+    content: textInfo.content,
+  });
 }
 onMounted(async () => {
-  handleBlur()
+  handleBlur();
 });
 
 watch(
   () => props.content,
   () => {
-    textInfo.content = props.content || '&nbsp;';
+    textInfo.content = props.content || "&nbsp;";
   }
 );
 
 // 输入的时候，计算文本大小，并回传数据
 function handleTextInput(e: any) {
+  console.log('123');
+  
   autoCalcTextSize();
-  textInfo.content = e.target.innerHTML || '&nbsp;'
+  textInfo.content = e.target.innerHTML || "&nbsp;";
 }
 
 // 改变模式
@@ -76,7 +86,7 @@ function changeMode(flag: boolean) {
 // 设置焦点
 function setFocus() {
   //   editDivRef.value!.focus();
-  const ele = editDivRef.value!
+  const ele = editDivRef.value!;
   // 获取当前光标的位置
   let selection = window.getSelection();
   // 创建Range对象
@@ -102,13 +112,14 @@ function handleBlur() {
   emits("text-change", {
     width: textInfo.width,
     height: textInfo.height,
-    content: textInfo.content,
+    content: textInfo.content || "&nbsp;",
     contenteditable: textInfo.contenteditable,
   });
 }
 
 defineExpose({
   changeMode,
+  handleBlur,
 });
 </script>
 
@@ -125,8 +136,9 @@ defineExpose({
 
 .fit-content {
   display: inline-block;
+  word-wrap: break-all;
+  /* 不换行 */
   white-space: nowrap;
-  outline: none;
 }
 
 .preview {
