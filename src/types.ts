@@ -7,3 +7,8 @@ export interface IStateSet {
   path: string;
   value: any;
 }
+
+export interface IHandle {
+  handleType: 'select',
+  target: ISprite | ISprite[],
+}

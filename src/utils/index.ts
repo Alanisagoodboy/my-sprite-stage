@@ -1,11 +1,4 @@
-import { ICoordinate } from "./../components/meta-data/types";
-import {
-  IBoundingBox,
-  ICoordinate,
-  ISize,
-  ISprite,
-  IStage,
-} from "../components/meta-data/types";
+import { ISprite, IStage } from "../components/meta-data/types";
 import { IBox, IPoint, HANDLER } from "./types";
 
 // 获得旋转后的点
@@ -394,7 +387,7 @@ export function calcMoveBoxInfoWithoutRotate({
  * @returns 新的选中的精灵列表
  */
 export function getSelectList({ id, activeList, allList }: any) {
-  let target = [...activeList];
+  let target: ISprite[] = [...activeList];
   // 如果本身就在活跃的精灵列表中，返回原有的精灵列表
   const findInActive = findRootIdItem(activeList, id);
   if (!findInActive) {

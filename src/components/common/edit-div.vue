@@ -15,7 +15,6 @@
   ></div>
 </template>
 <script setup lang="ts">
-import { throttle } from "lodash";
 import { onMounted, reactive, ref, nextTick, watch } from "vue";
 defineOptions({
   name: "text-div",
@@ -43,8 +42,6 @@ function autoCalcTextSize() {
   textInfo.height = rect.height;
   textInfo.width = Math.max(48, rect.width);
 
-  console.log(rect, "rect");
-
   emits("size-change", {
     width: textInfo.width,
     height: textInfo.height,
@@ -64,8 +61,8 @@ watch(
 
 // 输入的时候，计算文本大小，并回传数据
 function handleTextInput(e: any) {
-  console.log('123');
-  
+  console.log("123");
+
   autoCalcTextSize();
   textInfo.content = e.target.innerHTML || "&nbsp;";
 }

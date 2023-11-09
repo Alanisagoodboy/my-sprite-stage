@@ -19,9 +19,9 @@
 
 <script setup lang="ts">
 import EditDiv from "../../common/edit-div.vue";
-import { ISprite } from "../../meta-data/types";
+import { ISprite, IStage } from "../../meta-data/types";
 
-import { ref, onMounted, nextTick, watch } from "vue";
+import { ref, onMounted, watch } from "vue";
 
 defineOptions({
   name: "text-sprite",
@@ -29,6 +29,7 @@ defineOptions({
 
 const props = defineProps<{
   sprite: ISprite;
+  stage: IStage
 }>();
 const emits = defineEmits(["updateSprite"]);
 const editDivRef = ref<InstanceType<typeof EditDiv> | null>(null);
@@ -65,11 +66,11 @@ function handleSizeChange(info: any) {
     stateSet: [
       {
         path: "boundingBox.width",
-        value: info.width,
+        value: info.width / props.stage.scale,
       },
       {
         path: "boundingBox.height",
-        value: info.height,
+        value: info.height / props.stage.scale,
       },
       {
         path: "mode",

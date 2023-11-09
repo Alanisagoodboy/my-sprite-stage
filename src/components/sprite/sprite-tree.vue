@@ -14,6 +14,7 @@
           fill="transparent"
         ></rect>
         <sprite-tree
+          :stage="stage"
           :spriteList="sprite.children"
           :registerSpriteMetaMap="registerSpriteMetaMap"
           @updateSprite="updateSprite"
@@ -24,6 +25,7 @@
       <component
         :is="registerSpriteMetaMap[sprite.type].component"
         :sprite="sprite"
+        :stage="stage"
         @updateSprite="updateSprite"
       ></component>
     </template>
@@ -31,16 +33,16 @@
 </template>
 
 <script setup lang="ts">
-import { ISprite } from "../meta-data/types";
+import { ISprite, IStage } from "../meta-data/types";
 import SpriteContainer from "./sprite-container.vue";
 
 defineOptions({
   name: "sprite-tree",
 });
 
-defineProps<{
+const props = defineProps<{
+  stage: IStage;
   spriteList: ISprite[];
-
   registerSpriteMetaMap: any;
 }>();
 

@@ -67,8 +67,8 @@ function mousedown(e: MouseEvent) {
   // const gy = group.transform("translateY") as any as number;
 
   function mousemove(event: MouseEvent) {
-    d.dx = event.clientX - downX + lastPoint.dx;
-    d.dy = event.clientY - downY + lastPoint.dy;
+    d.dx = (event.clientX - downX + lastPoint.dx) / props.scale!;
+    d.dy = (event.clientY - downY + lastPoint.dy) / props.scale!;
   }
 
   function mouseup() {
