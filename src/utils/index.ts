@@ -1,4 +1,4 @@
-import { ISprite, IStage } from "../components/meta-data/types";
+import { IBoundingBox, ISprite, IStage } from "../components/meta-data/types";
 import { IBox, IPoint, HANDLER } from "./types";
 
 // 获得旋转后的点
@@ -302,7 +302,7 @@ function handleResize({
  *
  * @desc 计算移动，不考虑旋转
  * @param rect 外包裹矩形
- * @param needChangeRect 需要改变的矩形信息
+ * @param needChangeSprite 需要改变的矩形信息
  * @param staticRectList 静止不动的矩形信息
  * @param stage 舞台尺寸
  * @param startEv 鼠标按下时候的事件
@@ -310,15 +310,15 @@ function handleResize({
  */
 export function calcMoveBoxInfoWithoutRotate({
   rect,
-  needChangeRect,
-  staticRectList,
+  needChangeSprite,
+  staticSpriteList,
   stage,
   startEv,
   moveEv,
 }: {
   rect: IBoundingBox;
-  needChangeRect: IBoundingBox[];
-  staticRectList: IBoundingBox[];
+  needChangeSprite: any[];
+  staticSpriteList: ISprite[];
   stage: IStage;
   startEv: MouseEvent;
   moveEv: MouseEvent;
@@ -342,7 +342,7 @@ export function calcMoveBoxInfoWithoutRotate({
     dy: fixDisY,
   } = getAuxLine({
     rect: boundingBox,
-    inactiveRectList: staticRectList,
+    inactiveRectList: staticSpriteList.map((m) => m.boundingBox),
     stage,
   });
 
@@ -361,15 +361,52 @@ export function calcMoveBoxInfoWithoutRotate({
     height: 0,
   };
 
-  // 需要改变的矩形目标数据
-  const target = needChangeRect.map((m) => {
+  const target = needChangeSprite.map(m=> {
+    const source = {
+      id: m.source.id,
+      boundingBox: {
+        x: m.source.boundingBox.x + dx,
+        y: m.source.boundingBox.y + dy,
+        width: m.source.boundingBox.width,
+        height: m.source.boundingBox.height,
+      }
+    }
+
+    const parent = m.flatParent.parent
+    const pBoxList = parent.children.map((m, i)=> {
+      return i === m.flatParent.findIndex ? source.boundingBox: m.boundingBox
+    })
+    const pBox = getWrapperBoxInfo(pBoxList)
     return {
-      x: m.x + dx,
-      y: m.y + dy,
-      width: m.width,
-      height: m.height,
-    };
-  });
+      source,
+      flatParent: {
+        id: parent.id,
+        boundingBox: pBox
+      }
+    }
+  })
+
+
+  // 需要改变的矩形目标数据; 会影响到他自己，同时也需要计算父级
+  // const target = {
+  //   source,
+  //   flatParent: needChangeSprite.flatParent.map((m) => {
+  //     const boundingBox = getWrapperBoxInfo(
+  //       m.children!.map((n) => {
+  //         return {
+  //           x: n.boundingBox.x /* + m.boundingBox.x */,
+  //           y: n.boundingBox.y/*  + m.boundingBox.y */,
+  //           width: n.boundingBox.width/*  + m.boundingBox.width */,
+  //           height: n.boundingBox.height /* + m.boundingBox.height */,
+  //         };
+  //       })
+  //     );
+  //     return {
+  //       id: m.id,
+  //       boundingBox,
+  //     };
+  //   }),
+  // };
 
   return {
     boundingBox, // 盒子信息
@@ -1398,6 +1435,9 @@ function getPathByKey(curKey: string, data: Array<any>): Array<any> {
   };
   traverse(curKey, [], data);
   // 返回找到的树节点路径
+
+  console.log(result, "result");
+
   return result;
 }
 

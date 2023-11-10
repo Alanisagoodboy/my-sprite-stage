@@ -444,10 +444,11 @@ function updateState(
     const _stateSet = Array.isArray(stateSet) ? stateSet : [stateSet];
 
     const isTop = topFindById(sprite.id); // 判断是否是第一层
-    if (!isTop) {
-      const xItem = _stateSet.find((f) => f.path === "boundingBox.x");
-      const yItem = _stateSet.find((f) => f.path === "boundingBox.y");
 
+    const xItem = _stateSet.find((f) => f.path === "boundingBox.x");
+    const yItem = _stateSet.find((f) => f.path === "boundingBox.y");
+
+    if (!isTop) {
       // 对于活跃精灵列表， 如果存在更新了x坐标还是y坐标，需要更新组内坐标为舞台坐标
       if (updateType === "active") {
         const point = getCoordinateInStageFromGroup(
@@ -488,31 +489,77 @@ function updateState(
 function updateSpriteBox(info: any) {
   const { target, lines = [] } = info;
 
-  if (target && target.length) {
-    activeSpriteList.value.forEach((item: ISprite, index: number) => {
-      updateSprite({
-        id: item.id,
-        stateSet: [
-          {
-            path: "boundingBox.x",
-            value: target[index].x,
-          },
-          {
-            path: "boundingBox.y",
-            value: target[index].y,
-          },
-          {
-            path: "boundingBox.width",
-            value: target[index].width,
-          },
-          {
-            path: "boundingBox.height",
-            value: target[index].height,
-          },
-        ],
-      });
+  target.forEach((f) => {
+    updateSprite({
+      id: f.source.id,
+      stateSet: [
+        {
+          path: "boundingBox.x",
+          value: f.source.boundingBox.x,
+        },
+        {
+          path: "boundingBox.y",
+          value: f.source.boundingBox.y,
+        },
+        {
+          path: "boundingBox.width",
+          value: f.source.boundingBox.width,
+        },
+        {
+          path: "boundingBox.height",
+          value: f.source.boundingBox.height,
+        },
+      ],
     });
-  }
+    updateSprite({
+      id: f.flatParent.id,
+      stateSet: [
+        {
+          path: "boundingBox.x",
+          value: f.flatParent.boundingBox.x,
+        },
+        {
+          path: "boundingBox.y",
+          value: f.flatParent.boundingBox.y,
+        },
+        {
+          path: "boundingBox.width",
+          value: f.flatParent.boundingBox.width,
+        },
+        {
+          path: "boundingBox.height",
+          value: f.flatParent.boundingBox.height,
+        },
+      ],
+    });
+  });
+
+
+  // if (target && target.length) {
+  //   activeSpriteList.value.forEach((item: ISprite, index: number) => {
+  //     updateSprite({
+  //       id: item.id,
+  //       stateSet: [
+  //         {
+  //           path: "boundingBox.x",
+  //           value: target[index].x,
+  //         },
+  //         {
+  //           path: "boundingBox.y",
+  //           value: target[index].y,
+  //         },
+  //         {
+  //           path: "boundingBox.width",
+  //           value: target[index].width,
+  //         },
+  //         {
+  //           path: "boundingBox.height",
+  //           value: target[index].height,
+  //         },
+  //       ],
+  //     });
+  //   });
+  // }
 
   auxiliaryLineList.value = lines;
 }
@@ -528,21 +575,21 @@ function move(info: any) {
 }
 
 function moveEnd(info: any) {
-  updateSpriteBox(info);
-  history.push(JSON.parse(JSON.stringify(spriteList.value)));
+  // updateSpriteBox(info);
+  // history.push(JSON.parse(JSON.stringify(spriteList.value)));
 }
 
 function rotate(info: any) {
-  updateSpriteBox(info);
+  // updateSpriteBox(info);
 }
 
 function resize(info: any) {
-  updateSpriteBox(info);
+  // updateSpriteBox(info);
 }
 
 function resizeEnd(info: any) {
-  updateSpriteBox(info);
-  history.push(JSON.parse(JSON.stringify(spriteList.value)));
+  // updateSpriteBox(info);
+  // history.push(JSON.parse(JSON.stringify(spriteList.value)));
 }
 
 // 更新精灵属性

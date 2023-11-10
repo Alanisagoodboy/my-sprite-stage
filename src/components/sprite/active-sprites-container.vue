@@ -48,6 +48,7 @@ import {
   calcMoveBoxInfoWithoutRotate,
   getSelectList,
   findById,
+  getPathByKey,
 } from "../../utils/index";
 import { HANDLER } from "../../utils/types";
 
@@ -282,17 +283,15 @@ async function onMousedown(e: MouseEvent) {
   const id = spriteDom?.getAttribute("data-sprite-id");
   console.log(id, "id");
 
-  const { target, boundingBox } = getSelectList({
+  const { target } = getSelectList({
     id,
     activeList: props.activeSpriteList,
     allList: props.spriteList,
   });
 
   //代码丑陋, 输入只是点击，有可能会后触发mouseup，导致坐标数据是以前的，所以在计算出选中后吗，立马更新坐标数据
-  boxInfoInStage = boundingBox;
+  boxInfoInStage = {};
   emits("select", { target });
-
-
 
   // Object.assign(boxInfoInStage, selectSprite.boundingBox);
   // 如果不是鼠标左键 return
@@ -300,32 +299,35 @@ async function onMousedown(e: MouseEvent) {
 
   // 传出事件，再等待新的props
   await nextTick();
-
-  // const editMode = target.some((s) => s.mode === "edit");
-  // console.log(editMode, 'editMode');
-  
-  // 如果是编辑模式，直接 return
-  // if (editMode) return;
-
   const lastDragInfo = getActiveBoxInfo();
-  const needChangeRect: IBoundingBox[] = JSON.parse(
-    JSON.stringify(props.activeSpriteList)
-  ).map((m: ISprite) => m.boundingBox);
-
-  const staticRectList = props.spriteList
-    .filter((f) => {
-      return props.activeSpriteList.find((item) => item.id !== f.id);
+  // const needChangeSprite: ISprite[] = JSON.parse(
+  //   JSON.stringify(props.activeSpriteList)
+  // );
+  const needChangeSprite = 
+    JSON.parse(JSON.stringify(props.activeSpriteList)).map((m) => {
+      const parent = getPathByKey(m.id, props.spriteList);
+      const findIndex = parent[0].children.findIndex((f) => f.id === m.id);
+      return {
+        source: m,
+        flatParent: {
+          findIndex,
+          parent: getPathByKey(m.id, props.spriteList).slice(0, -1)[0],
+        },
+      };
     })
-    .map((m) => m.boundingBox);
-  isMousedown.value = true;
+  ;
+
+  const staticSpriteList = props.spriteList.filter((f) => {
+    return props.activeSpriteList.find((item) => item.id !== f.id);
+  });
 
   const onMousemove = (ev: MouseEvent) => {
     setIsMoving(true);
     boxInfoInStage = calcMoveBoxInfoWithoutRotate({
       rect: lastDragInfo,
       stage: props.stage,
-      needChangeRect,
-      staticRectList,
+      needChangeSprite,
+      staticSpriteList,
       startEv: e,
       moveEv: ev,
     });
@@ -347,68 +349,11 @@ async function onMousedown(e: MouseEvent) {
 
 function onRotateMousedown(e: MouseEvent) {
   console.log(e);
-
-  // const el = dragRef.value!;
-  // e.stopPropagation();
-  // e.preventDefault();
-
-  // const startY = e.clientY;
-  // const startX = e.clientX;
-
-  // const rect = el.getBoundingClientRect();
-  // 旋转中心位置
-  // const centerX = rect.left + rect.width / 2;
-  // const centerY = rect.top + rect.height / 2;
-
-  // // 旋转前的角度
-  // const rotateDegreeBefore =
-  //   Math.atan2(startY - centerY, startX - centerX) / (Math.PI / 180);
-
-  // function onMousemove(e: MouseEvent) {
-  //   // const curX = e.clientX;
-  //   // const curY = e.clientY;
-  //   // Math.atan2(y,x) 返回从原点 (0,0) 到 (x,y) 点的线段与 x 轴正方向之间的平面角度 (弧度值)
-
-  //   // // 旋转后的角度
-  //   // const rotateDegreeAfter =
-  //   //   Math.atan2(curY - centerY, curX - centerX) / (Math.PI / 180);
-  //   // // 获取旋转的角度值， startRotate 为初始角度值
-  //   // const rotate = 0 + rotateDegreeAfter - rotateDegreeBefore;
-
-  //   // // dragData.value.rotate = rotate; // 角度
-  //   emit("rotate", { ...dragData.value });
-  // }
-
-  // const onMouseup = (_e: MouseEvent) => {
-  //   document.removeEventListener("pointermove", onMousemove);
-  //   document.removeEventListener("pointerup", onMouseup);
-  // };
-  // document.addEventListener("pointermove", onMousemove);
-  // document.addEventListener("pointerup", onMouseup);
 }
 
 function emitData(
   type: "move" | "move-end" | "resize" | "resize-end" | "rotate"
 ) {
-  // 如果是组内选中，那么肯定是由一个活跃精灵列表肯定只有一个
-  // 并且不在第一层
-  // if (props.activeSpriteList.length === 1) {
-  //   const sprite = props.activeSpriteList[0];
-  //   const find = props.spriteList.find((f) => f.id === sprite.id);
-  //   if (!find) {
-  //     // 将坐标转化为组内坐标
-  //     const pos = getCoordinateInGroupFromStage(sprite.id, props.spriteList);
-  //     console.log(pos, 'pos');
-
-  //     pos && emit(type, { ...boxInfoInStage, x: pos.x, y: pos.y });
-  //     console.log("8888");
-
-  //     return;
-  //   } else {
-  //     emit(type, { ...boxInfoInStage });
-  //   }
-  // } else {
-
   emits(type, { ...boxInfoInStage });
   // }
 }
