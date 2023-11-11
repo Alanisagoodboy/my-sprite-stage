@@ -511,24 +511,24 @@ function updateSpriteBox(info: any) {
         },
       ],
     });
-    updateSprite({
-      id: f.flatParent.id,
+    f.parent.length > 0 && updateSprite({
+      id: f.parent[0].id,
       stateSet: [
         {
           path: "boundingBox.x",
-          value: f.flatParent.boundingBox.x,
+          value: f.parent[0].boundingBox.x,
         },
         {
           path: "boundingBox.y",
-          value: f.flatParent.boundingBox.y,
+          value: f.parent[0].boundingBox.y,
         },
         {
           path: "boundingBox.width",
-          value: f.flatParent.boundingBox.width,
+          value: f.parent[0].boundingBox.width,
         },
         {
           path: "boundingBox.height",
-          value: f.flatParent.boundingBox.height,
+          value: f.parent[0].boundingBox.height,
         },
       ],
     });

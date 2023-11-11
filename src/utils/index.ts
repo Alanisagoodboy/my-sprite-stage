@@ -372,17 +372,22 @@ export function calcMoveBoxInfoWithoutRotate({
       }
     }
 
-    const parent = m.flatParent.parent
-    const pBoxList = parent.children.map((m, i)=> {
-      return i === m.flatParent.findIndex ? source.boundingBox: m.boundingBox
-    })
-    const pBox = getWrapperBoxInfo(pBoxList)
+    const parent = m.parent
+
+    // 获取父级信息,子级改变会影响父级的坐标
+    if (parent.length > 0) {
+      const findIndex = parent[0].children!.findIndex((n) => n.id === source.id);
+
+      console.log(parent,source.id ,findIndex, 'findIndex');
+      
+      if (findIndex > -1) {
+        parent[0].children![findIndex].boundingBox = source.boundingBox;
+        parent[0].boundingBox = getWrapperBoxInfo(parent[0].children!)
+      }
+    }
     return {
       source,
-      flatParent: {
-        id: parent.id,
-        boundingBox: pBox
-      }
+      parent
     }
   })
 
@@ -1223,42 +1228,64 @@ export const roundingUnitize = (n: number, unit: number, adsorbDis = 4) => {
 function getWrapperBoxInfo(rectList: IBoundingBox[]) {
   // console.log(rectList, "rectList");
 
-  const p = {
-    minX: 10000000,
-    minY: 10000000,
-    maxX: 0,
-    maxY: 0,
-  };
-
-  const boxInfo = {
-    x: 0,
-    y: 0,
-    width: 0,
-    height: 0,
-  };
-
-  if (rectList.length >= 1) {
-    rectList.forEach((rect) => {
-      if (rect.x < p.minX) {
-        p.minX = rect.x;
-      }
-      if (rect.y < p.minY) {
-        p.minY = rect.y;
-      }
-      if (rect.x + rect.width > p.maxX) {
-        p.maxX = rect.x + rect.width;
-      }
-      if (rect.y + rect.height > p.maxY) {
-        p.maxY = rect.y + rect.height;
-      }
-    });
-    boxInfo.x = p.minX;
-    boxInfo.y = p.minY;
-    boxInfo.width = p.maxX - p.minX;
-    boxInfo.height = p.maxY - p.minY;
+  if(rectList.length === 0) {
+    return 
   }
 
-  return boxInfo;
+  if (rectList.length === 1) {
+    return rectList[0];
+  }
+
+  // 计算最小x,y,最大x,y
+  const minX = Math.min(...rectList.map((m) => m.x));
+  const minY = Math.min(...rectList.map((m) => m.y));
+  const maxX = Math.max(...rectList.map((m) => m.x + m.width));
+  const maxY = Math.max(...rectList.map((m) => m.y + m.height));
+
+  return {
+    x: minX,
+    y: minY,
+    width: maxX - minX,
+    height: maxY - minY,
+  }
+
+
+  // const p = {
+  //   minX: 10000000,
+  //   minY: 10000000,
+  //   maxX: 0,
+  //   maxY: 0,
+  // };
+
+  // const boxInfo = {
+  //   x: 0,
+  //   y: 0,
+  //   width: 0,
+  //   height: 0,
+  // };
+
+  // if (rectList.length >= 1) {
+  //   rectList.forEach((rect) => {
+  //     if (rect.x < p.minX) {
+  //       p.minX = rect.x;
+  //     }
+  //     if (rect.y < p.minY) {
+  //       p.minY = rect.y;
+  //     }
+  //     if (rect.x + rect.width > p.maxX) {
+  //       p.maxX = rect.x + rect.width;
+  //     }
+  //     if (rect.y + rect.height > p.maxY) {
+  //       p.maxY = rect.y + rect.height;
+  //     }
+  //   });
+  //   boxInfo.x = p.minX;
+  //   boxInfo.y = p.minY;
+  //   boxInfo.width = p.maxX - p.minX;
+  //   boxInfo.height = p.maxY - p.minY;
+  // }
+
+  // return boxInfo;
 }
 /**
  *

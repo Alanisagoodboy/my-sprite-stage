@@ -196,9 +196,7 @@ const dragData = computed(() => {
     return m.boundingBox;
   });
   const boundingBox = getWrapperBoxInfo(points);
-  return {
-    ...boundingBox,
-  };
+  return boundingBox ? boundingBox : { x: 0, y: 0, width: 0, height: 0 };
 });
 
 // 坐标变换
@@ -305,14 +303,10 @@ async function onMousedown(e: MouseEvent) {
   // );
   const needChangeSprite = 
     JSON.parse(JSON.stringify(props.activeSpriteList)).map((m) => {
-      const parent = getPathByKey(m.id, props.spriteList);
-      const findIndex = parent[0].children.findIndex((f) => f.id === m.id);
+      const parent = getPathByKey(m.id, props.spriteList).slice(0, -1);
       return {
         source: m,
-        flatParent: {
-          findIndex,
-          parent: getPathByKey(m.id, props.spriteList).slice(0, -1)[0],
-        },
+        parent
       };
     })
   ;
