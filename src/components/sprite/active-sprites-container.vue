@@ -1,6 +1,6 @@
 <template>
-  <g ref="dragRef" class="active-sprites-container" :transform="transform">
-    <!-- 这里只能fill: none 防止点击不到下面的精灵 -->
+  <g>
+    <!-- 辅助线是舞台坐标系 -->
     <g v-show="isMoving">
       <line
         v-for="line of auxiliaryLine"
@@ -9,33 +9,36 @@
         stroke-dasharray="5"
       ></line>
     </g>
-    <rect
-      x="0"
-      y="0"
-      :width="dragData.width"
-      :height="dragData.height"
-      stroke="#398cfe"
-      fill="none"
-    />
-    <slot />
-    <rect
-      v-for="dot of resizePoints"
-      :key="dot.side"
-      :width="dotSize"
-      :height="dotSize"
-      fill="#fff"
-      stroke-width="1"
-      stroke="#398cfe"
-      v-bind="getHandlePoint(dragData, dot.side, dotSize)"
-      @mousedown="onDotMousedown(dot, $event)"
-    />
+    <g ref="dragRef" class="active-sprites-container" :transform="transform">
+      <!-- 这里只能fill: none 防止点击不到下面的精灵 -->
+      <rect
+        x="0"
+        y="0"
+        :width="activeBoundingBox.width"
+        :height="activeBoundingBox.height"
+        stroke="#398cfe"
+        fill="none"
+      />
+      <slot />
+      <rect
+        v-for="dot of resizePoints"
+        :key="dot.side"
+        :width="dotSize"
+        :height="dotSize"
+        fill="#fff"
+        stroke-width="1"
+        stroke="#398cfe"
+        v-bind="getHandlePoint(activeBoundingBox, dot.side, dotSize)"
+        @mousedown="onDotMousedown(dot, $event)"
+      />
 
-    <g
-      v-if="isShowRotate"
-      @mousedown="onRotateMousedown"
-      :transform="`translate(${+dragData.width / 2 - 5} , -30)`"
-    >
-      <circle r="5" stroke="#398cfe" fill="#fff"></circle>
+      <g
+        v-if="isShowRotate"
+        @mousedown="onRotateMousedown"
+        :transform="`translate(${+activeBoundingBox.width / 2 - 5} , -30)`"
+      >
+        <circle r="5" stroke="#398cfe" fill="#fff"></circle>
+      </g>
     </g>
   </g>
 </template>
@@ -64,6 +67,7 @@ import {
 import { IBoundingBox, IStage, ISprite, SPRITE_NAME } from "../meta-data/types";
 
 import { getWrapperBoxInfo } from "../../utils/index";
+// import { IHandleTarget } from "../../types";
 
 function handleSelectExactly(e: MouseEvent) {
   setIsMoving(false);
@@ -77,14 +81,8 @@ function handleSelectExactly(e: MouseEvent) {
 
   const find = findById(props.spriteList, id);
   if (find) {
-    // 如果不是第一层,那么选中
-    // if (!props.spriteList.find((f) => f.id === id)) {
-
-    // }
-
-    // 如果不是组，则开启编辑模式
     emits("select", {
-      target: find,
+      targetIds: [id],
       mode: find.type === SPRITE_NAME.GROUP ? "default" : "edit",
     });
   }
@@ -118,12 +116,10 @@ const props = defineProps<{
   stage: IStage;
   // 精灵列表
   spriteList: ISprite[];
-  // 活跃的精灵列表
-  activeSpriteList: ISprite[];
+  // 活跃精灵ids Set
+  activeIdsSet: Set<string>;
   // 已经注册的精灵元数据map
   registerSpriteMetaMap: Record<string, any>;
-  // 辅助线
-  auxiliaryLineList: any[];
 }>();
 const emits = defineEmits([
   "move",
@@ -150,24 +146,50 @@ const dotList: IDot[] = [
   { side: HANDLER.BR, cursor: "se-resize" },
 ];
 
-const auxiliaryLine = computed(() => {
-  return props.auxiliaryLineList.map((m) => {
-    return {
-      x1: m.x1 - dragData.value.x,
-      x2: m.x2 - dragData.value.x,
-      y1: m.y1 - dragData.value.y,
-      y2: m.y2 - dragData.value.y,
-    };
+// 辅助线
+const auxiliaryLine = ref<any>([]);
+
+// 计算选框信息
+const activeBoundingBox = computed(() => {
+  const ids = [...props.activeIdsSet];
+  const spriteArr = ids.map((m) => {
+    const path = getPathByKey(m, props.spriteList);
+    const res = path[path.length - 1];
+    const point = path.reduce(
+      (total, cur) => {
+        const { x, y } = cur.boundingBox;
+        total.x += x;
+        total.y += y;
+        return total;
+      },
+      {
+        x: 0,
+        y: 0,
+      }
+    );
+
+    res.boundingBox.x = point.x;
+    res.boundingBox.y = point.y;
+    return res;
   });
+
+  return (
+    getWrapperBoxInfo(spriteArr.map((m) => m.boundingBox)) || {
+      x: 0,
+      y: 0,
+      width: 0,
+      height: 0,
+    }
+  );
 });
 
 // 形变点数组渲染
 const resizePoints = computed(() => {
-  if (props.activeSpriteList.length === 1) {
-    const { registerSpriteMetaMap, activeSpriteList } = props;
+  if (props.activeIdsSet.size === 1) {
+    const [firstId] = props.activeIdsSet;
+    const sprite: ISprite = findById(props.spriteList, firstId)!;
 
-    const activeMeta =
-      registerSpriteMetaMap[(activeSpriteList[0] as ISprite).type];
+    const activeMeta = props.registerSpriteMetaMap[sprite.type];
 
     if (activeMeta.resizePoints === "all") {
       return dotList;
@@ -190,20 +212,12 @@ const isShowRotate = computed(() => {
   return false;
 });
 
-// 计算外包裹拖拽盒子信息
-const dragData = computed(() => {
-  const points: IBoundingBox[] = props.activeSpriteList.map((m: ISprite) => {
-    return m.boundingBox;
-  });
-  const boundingBox = getWrapperBoxInfo(points);
-  return boundingBox ? boundingBox : { x: 0, y: 0, width: 0, height: 0 };
-});
-
 // 坐标变换
 const transform = computed(() => {
-  const centerX = dragData.value.x + dragData.value.width / 2;
-  const centerY = dragData.value.y + dragData.value.height / 2;
-  const translateStr = `translate(${dragData.value.x}, ${dragData.value.y})`;
+  const centerX = activeBoundingBox.value.x + activeBoundingBox.value.width / 2;
+  const centerY =
+    activeBoundingBox.value.y + activeBoundingBox.value.height / 2;
+  const translateStr = `translate(${activeBoundingBox.value.x}, ${activeBoundingBox.value.y})`;
   const rotateStr = `rotate(${0} ${centerX} ${centerY})`;
   return `${rotateStr} ${translateStr}`;
 });
@@ -217,31 +231,58 @@ function onDotMousedown(dotInfo: IDot, e: MouseEvent) {
   setIsMoving(false);
 
   // 1.按下去的一瞬间 缓存当前的盒子信息
-  const lastDragInfo = getActiveBoxInfo();
+  const lastDragInfo = { ...activeBoundingBox.value };
 
-  const needChangeRect: IBoundingBox[] = JSON.parse(
-    JSON.stringify(props.activeSpriteList)
-  ).map((m: ISprite) => m.boundingBox);
+  const list = JSON.parse(JSON.stringify(props.spriteList));
+  const needChangeSprite: ISprite[][] = [...props.activeIdsSet].map((id) =>
+    getPathByKey(id, list).reverse()
+  );
 
-  const staticRectList = props.spriteList
-    .filter((f) => {
-      return props.activeSpriteList.find((item) => item.id !== f.id);
-    })
-    .map((m) => m.boundingBox);
+  // 只需要管理最外层做对比
+  const staticSpriteList = props.spriteList.filter((f) => {
+    return !props.activeIdsSet.has(f.id);
+  });
   // 5.计算中心点的坐标
 
   const onMousemove = (moveEv: MouseEvent) => {
     setIsMoving(true);
-    boxInfoInStage = calcResizeBoxInfoWithoutRotate({
+    const { target, lines } = calcResizeBoxInfoWithoutRotate({
       stage: props.stage,
       handleType: dotInfo.side,
       rect: lastDragInfo,
-      needChangeRect,
-      staticRectList,
+      needChangeSprite,
+      staticSpriteList,
       startEv: e,
       moveEv: moveEv,
     });
-    emitData("resize");
+    auxiliaryLine.value = lines;
+
+      emits(
+      "updateSprite",
+      target.map((m: any) => {
+        return {
+          id: m.id,
+          stateSet: [
+            {
+              path: "boundingBox.x",
+              value: m.boundingBox.x,
+            },
+            {
+              path: "boundingBox.y",
+              value: m.boundingBox.y,
+            },
+            {
+              path: "boundingBox.width",
+              value: m.boundingBox.width,
+            },
+            {
+              path: "boundingBox.height",
+              value: m.boundingBox.height,
+            },
+          ],
+        };
+      })
+    );
   };
   const onMouseup = (_e: MouseEvent) => {
     setIsMoving(false);
@@ -256,18 +297,6 @@ function onDotMousedown(dotInfo: IDot, e: MouseEvent) {
 
 // 拖拽元素
 const dragRef = ref<HTMLElement | null>(null);
-// 是否按下鼠标
-const isMousedown = ref(false);
-
-function getActiveBoxInfo() {
-  const points = props.activeSpriteList.map((m: ISprite) => {
-    return m.boundingBox;
-  });
-  const boundingBox = getWrapperBoxInfo(points);
-  return {
-    ...boundingBox,
-  };
-}
 
 /*
  * 鼠标按下事件
@@ -281,43 +310,36 @@ async function onMousedown(e: MouseEvent) {
   const id = spriteDom?.getAttribute("data-sprite-id");
   console.log(id, "id");
 
-  const { target } = getSelectList({
+  const targetIds = getSelectList({
     id,
-    activeList: props.activeSpriteList,
+    activeIdsSet: props.activeIdsSet,
     allList: props.spriteList,
   });
 
   //代码丑陋, 输入只是点击，有可能会后触发mouseup，导致坐标数据是以前的，所以在计算出选中后吗，立马更新坐标数据
   boxInfoInStage = {};
-  emits("select", { target });
+  emits("select", { targetIds });
 
+  // return
   // Object.assign(boxInfoInStage, selectSprite.boundingBox);
   // 如果不是鼠标左键 return
   if (e.button !== 0) return;
 
   // 传出事件，再等待新的props
   await nextTick();
-  const lastDragInfo = getActiveBoxInfo();
-  // const needChangeSprite: ISprite[] = JSON.parse(
-  //   JSON.stringify(props.activeSpriteList)
-  // );
-  const needChangeSprite = 
-    JSON.parse(JSON.stringify(props.activeSpriteList)).map((m) => {
-      const parent = getPathByKey(m.id, props.spriteList).slice(0, -1);
-      return {
-        source: m,
-        parent
-      };
-    })
-  ;
-
+  const lastDragInfo = { ...activeBoundingBox.value };
+  const list = JSON.parse(JSON.stringify(props.spriteList));
+  const needChangeSprite = [...props.activeIdsSet].map((id) =>
+    getPathByKey(id, list).reverse()
+  );
+  // 只需要管理最外层做对比
   const staticSpriteList = props.spriteList.filter((f) => {
-    return props.activeSpriteList.find((item) => item.id !== f.id);
+    return !props.activeIdsSet.has(f.id);
   });
 
   const onMousemove = (ev: MouseEvent) => {
     setIsMoving(true);
-    boxInfoInStage = calcMoveBoxInfoWithoutRotate({
+    const { target, lines } = calcMoveBoxInfoWithoutRotate({
       rect: lastDragInfo,
       stage: props.stage,
       needChangeSprite,
@@ -325,7 +347,34 @@ async function onMousedown(e: MouseEvent) {
       startEv: e,
       moveEv: ev,
     });
-    emitData("move");
+    auxiliaryLine.value = lines;
+
+    emits(
+      "updateSprite",
+      target.map((m: any) => {
+        return {
+          id: m.id,
+          stateSet: [
+            {
+              path: "boundingBox.x",
+              value: m.boundingBox.x,
+            },
+            {
+              path: "boundingBox.y",
+              value: m.boundingBox.y,
+            },
+            {
+              path: "boundingBox.width",
+              value: m.boundingBox.width,
+            },
+            {
+              path: "boundingBox.height",
+              value: m.boundingBox.height,
+            },
+          ],
+        };
+      })
+    );
   };
 
   const onMouseup = async (_e: MouseEvent) => {

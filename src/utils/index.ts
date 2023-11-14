@@ -158,16 +158,16 @@ export function calcResizeBoxInfoWithoutRotate({
   stage,
   handleType,
   rect,
-  needChangeRect,
-  staticRectList,
+  needChangeSprite,
+  staticSpriteList,
   startEv,
   moveEv,
 }: {
   stage: IStage;
   handleType: HANDLER;
   rect: IBoundingBox;
-  needChangeRect: IBoundingBox[];
-  staticRectList: IBoundingBox[];
+  needChangeSprite: ISprite[][];
+  staticSpriteList: ISprite[];
   startEv: MouseEvent;
   moveEv: MouseEvent;
 }) {
@@ -203,7 +203,7 @@ export function calcResizeBoxInfoWithoutRotate({
   // 计算出偏移量和辅助线
   const { lines, dx, dy } = getAuxLine({
     rect: boundingBox,
-    inactiveRectList: staticRectList,
+    inactiveRectList: staticSpriteList.map((m) => m.boundingBox),
     stage,
   });
 
@@ -217,27 +217,69 @@ export function calcResizeBoxInfoWithoutRotate({
     },
   });
 
-  const offset = {
+  console.log(boundingBox, "boundingBox");
+  const fixInfo = {
     x: boundingBox.x - rect.x,
     y: boundingBox.y - rect.y,
     width: boundingBox.width - rect.width,
     height: boundingBox.height - rect.height,
   };
 
-  const target = needChangeRect.map((m) => {
-    return {
-      x: ((m.x - rect.x) / rect.width) * boundingBox.width + boundingBox.x,
-      y: ((m.y - rect.y) / rect.height) * boundingBox.height + boundingBox.y,
-      width: (m.width / rect.width) * boundingBox.width,
-      height: (m.height / rect.height) * boundingBox.height,
+  // 目标数据
+  const _target = needChangeSprite.map((elementArr) => {
+    const [element, ...restParentEle] = elementArr;
+
+    // 多选时需要可以做到批量缩放
+    const newBoundingBox = {
+      x: element.boundingBox.x + fixInfo.x,
+      y: element.boundingBox.y + fixInfo.y,
+      width: element.boundingBox.width + fixInfo.width,
+      height: element.boundingBox.height + fixInfo.height,
     };
+
+    const first = {
+      id: element.id,
+      boundingBox: newBoundingBox,
+    };
+
+    const a = JSON.parse(JSON.stringify(restParentEle));
+    const resList = [];
+    a.forEach((current, index) => {
+      const lastItem = index === 0 ? first : a[index - 1];
+      const filter = current.children.filter((f) => f.id !== lastItem.id);
+
+      const pBoundingBox = getWrapperBoxInfo(
+        [...filter, lastItem].map((m) => m.boundingBox)
+      );
+      console.log(pBoundingBox, "pBoundingBox");
+
+      const fixChildren = [...filter, lastItem].map((m) => {
+        const x = m.boundingBox.x - pBoundingBox.x;
+        const y = m.boundingBox.y - pBoundingBox.y;
+        return {
+          ...m,
+          boundingBox: {
+            ...m.boundingBox,
+            x,
+            y,
+          },
+        };
+      });
+      current.boundingBox.x += pBoundingBox.x;
+      current.boundingBox.y += pBoundingBox.y;
+      current.boundingBox.width = pBoundingBox.width;
+      current.boundingBox.height = pBoundingBox.height;
+
+      resList.push(current, ...fixChildren);
+    });
+    // 为空说明点的是父级，那么只移动父级
+    if (resList.length === 0) resList.push(first);
+    return resList;
   });
 
   return {
     // 盒子信息
-    boundingBox,
-    offset,
-    target,
+    target: _target.flat(Infinity),
     lines, // 辅助线
   };
 }
@@ -328,7 +370,7 @@ export function calcMoveBoxInfoWithoutRotate({
     (moveEv.clientY - startEv.clientY) / stage.scale,
   ];
 
-  // 盒子信息
+  // 目标外包裹盒子信息
   const boundingBox = {
     x: rect.x + moveX,
     y: rect.y + moveY,
@@ -336,6 +378,7 @@ export function calcMoveBoxInfoWithoutRotate({
     height: rect.height,
   };
 
+  // 计算出辅助线和修正的值
   const {
     lines,
     dx: fixDisX,
@@ -346,105 +389,81 @@ export function calcMoveBoxInfoWithoutRotate({
     stage,
   });
 
-  boundingBox.x += fixDisX;
-  boundingBox.y += fixDisY;
-
-  // 修正偏移量
-  const dx = moveX + fixDisX;
-  const dy = moveY + fixDisY;
-
-  // 最终偏移量
-  const offset = {
-    x: dx,
-    y: dy,
-    width: 0,
-    height: 0,
-  };
-
-  const target = needChangeSprite.map(m=> {
-    const source = {
-      id: m.source.id,
+  // 目标数据
+  const _target = needChangeSprite.map((elementArr) => {
+    const [element, ...restParentEle] = elementArr;
+    const first = {
+      id: element.id,
       boundingBox: {
-        x: m.source.boundingBox.x + dx,
-        y: m.source.boundingBox.y + dy,
-        width: m.source.boundingBox.width,
-        height: m.source.boundingBox.height,
-      }
-    }
+        x: element.boundingBox.x + moveX + fixDisX,
+        y: element.boundingBox.y + moveY + fixDisY,
+        width: element.boundingBox.width,
+        height: element.boundingBox.height,
+      },
+    };
 
-    const parent = m.parent
+    const a = JSON.parse(JSON.stringify(restParentEle));
+    const resList = [];
+    a.forEach((current, index) => {
+      const lastItem = index === 0 ? first : a[index - 1];
+      const filter = current.children.filter((f) => f.id !== lastItem.id);
 
-    // 获取父级信息,子级改变会影响父级的坐标
-    if (parent.length > 0) {
-      const findIndex = parent[0].children!.findIndex((n) => n.id === source.id);
+      const pBoundingBox = getWrapperBoxInfo(
+        [...filter, lastItem].map((m) => m.boundingBox)
+      );
+      console.log(pBoundingBox, "pBoundingBox");
 
-      console.log(parent,source.id ,findIndex, 'findIndex');
-      
-      if (findIndex > -1) {
-        parent[0].children![findIndex].boundingBox = source.boundingBox;
-        parent[0].boundingBox = getWrapperBoxInfo(parent[0].children!)
-      }
-    }
-    return {
-      source,
-      parent
-    }
-  })
+      const fixChildren = [...filter, lastItem].map((m) => {
+        const x = m.boundingBox.x - pBoundingBox.x;
+        const y = m.boundingBox.y - pBoundingBox.y;
+        return {
+          ...m,
+          boundingBox: {
+            ...m.boundingBox,
+            x,
+            y,
+          },
+        };
+      });
+      current.boundingBox.x += pBoundingBox.x;
+      current.boundingBox.y += pBoundingBox.y;
+      current.boundingBox.width = pBoundingBox.width;
+      current.boundingBox.height = pBoundingBox.height;
 
-
-  // 需要改变的矩形目标数据; 会影响到他自己，同时也需要计算父级
-  // const target = {
-  //   source,
-  //   flatParent: needChangeSprite.flatParent.map((m) => {
-  //     const boundingBox = getWrapperBoxInfo(
-  //       m.children!.map((n) => {
-  //         return {
-  //           x: n.boundingBox.x /* + m.boundingBox.x */,
-  //           y: n.boundingBox.y/*  + m.boundingBox.y */,
-  //           width: n.boundingBox.width/*  + m.boundingBox.width */,
-  //           height: n.boundingBox.height /* + m.boundingBox.height */,
-  //         };
-  //       })
-  //     );
-  //     return {
-  //       id: m.id,
-  //       boundingBox,
-  //     };
-  //   }),
-  // };
-
+      resList.push(current, ...fixChildren);
+    });
+    // 为空说明点的是父级，那么只移动父级
+    if (resList.length === 0) resList.push(first);
+    return resList;
+  });
   return {
-    boundingBox, // 盒子信息
-    offset, // 偏移量
-    target, // 需要改变的矩形目标数据
     lines, // 辅助线
+    target: _target.flat(Infinity), // 目标数据
   };
 }
 
 /**
  * 获取选中的精灵列表
  * @param id 点击精灵的id
- * @param activeList 当前已经选中的精灵列表数据
+ * @param activeIdsSet 当前已经选中的精灵列表Set
  * @param allList 所有选中的精灵列表数据
  * @returns 新的选中的精灵列表
  */
-export function getSelectList({ id, activeList, allList }: any) {
-  let target: ISprite[] = [...activeList];
+export function getSelectList({ id, activeIdsSet, allList }: any) {
+  let targetIds = [...activeIdsSet];
   // 如果本身就在活跃的精灵列表中，返回原有的精灵列表
+  const activeList = targetIds.map((id) => findById(allList, id));
   const findInActive = findRootIdItem(activeList, id);
   if (!findInActive) {
     // 否则在全局精灵列表中查找
     const findInAll = findRootIdItem(allList, id);
     // 如果找到了，将找到的这一个设置为新的选中的精灵
     if (findInAll) {
-      target = [findInAll];
+      targetIds = [findInAll.id];
     }
   }
 
-  return {
-    boundingBox: getWrapperBoxInfo(target.map((m) => m.boundingBox)),
-    target,
-  };
+  return targetIds;
 }
 
 /**
@@ -1228,8 +1247,8 @@ export const roundingUnitize = (n: number, unit: number, adsorbDis = 4) => {
 function getWrapperBoxInfo(rectList: IBoundingBox[]) {
   // console.log(rectList, "rectList");
 
-  if(rectList.length === 0) {
-    return 
+  if (rectList.length === 0) {
+    return;
   }
 
   if (rectList.length === 1) {
@@ -1247,45 +1266,7 @@ function getWrapperBoxInfo(rectList: IBoundingBox[]) {
     y: minY,
     width: maxX - minX,
     height: maxY - minY,
-  }
-
-
-  // const p = {
-  //   minX: 10000000,
-  //   minY: 10000000,
-  //   maxX: 0,
-  //   maxY: 0,
-  // };
-
-  // const boxInfo = {
-  //   x: 0,
-  //   y: 0,
-  //   width: 0,
-  //   height: 0,
-  // };
-
-  // if (rectList.length >= 1) {
-  //   rectList.forEach((rect) => {
-  //     if (rect.x < p.minX) {
-  //       p.minX = rect.x;
-  //     }
-  //     if (rect.y < p.minY) {
-  //       p.minY = rect.y;
-  //     }
-  //     if (rect.x + rect.width > p.maxX) {
-  //       p.maxX = rect.x + rect.width;
-  //     }
-  //     if (rect.y + rect.height > p.maxY) {
-  //       p.maxY = rect.y + rect.height;
-  //     }
-  //   });
-  //   boxInfo.x = p.minX;
-  //   boxInfo.y = p.minY;
-  //   boxInfo.width = p.maxX - p.minX;
-  //   boxInfo.height = p.maxY - p.minY;
-  // }
-
-  // return boxInfo;
+  };
 }
 /**
  *
@@ -1462,8 +1443,6 @@ function getPathByKey(curKey: string, data: Array<any>): Array<any> {
   };
   traverse(curKey, [], data);
   // 返回找到的树节点路径
-
-  console.log(result, "result");
 
   return result;
 }
