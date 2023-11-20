@@ -217,7 +217,6 @@ export function calcResizeBoxInfoWithoutRotate({
     },
   });
 
-  console.log(boundingBox, "boundingBox");
   const fixInfo = {
     x: boundingBox.x - rect.x,
     y: boundingBox.y - rect.y,
@@ -225,7 +224,12 @@ export function calcResizeBoxInfoWithoutRotate({
     height: boundingBox.height - rect.height,
   };
 
-  // 目标数据
+  // 计算缩放因子
+  const scale = {
+    x: boundingBox.width / rect.width,
+    y: boundingBox.height / rect.height,
+  };
+
   const _target = needChangeSprite.map((elementArr) => {
     const [element, ...restParentEle] = elementArr;
 
@@ -233,15 +237,24 @@ export function calcResizeBoxInfoWithoutRotate({
     const newBoundingBox = {
       x: element.boundingBox.x + fixInfo.x,
       y: element.boundingBox.y + fixInfo.y,
-      width: element.boundingBox.width + fixInfo.width,
-      height: element.boundingBox.height + fixInfo.height,
+      width: element.boundingBox.width * scale.x,
+      height: element.boundingBox.height * scale.y,
     };
-
+    // 计算选中的盒子信息
     const first = {
       id: element.id,
       boundingBox: newBoundingBox,
     };
 
+    // 计算影响的子级盒子信息, 遍历所有的子级并且给坐标进行修正
+    const childFlatList = scaleList(
+      JSON.parse(JSON.stringify(element.children)),
+      scale.x,
+      scale.y,
+      []
+    );
+
+    // 计算选中盒子影响的父级盒子， 因为缩放导致子级变化时会影响父级的包含范围需要重新计算
     const a = JSON.parse(JSON.stringify(restParentEle));
     const resList = [];
     a.forEach((current, index) => {
@@ -251,7 +264,6 @@ export function calcResizeBoxInfoWithoutRotate({
       const pBoundingBox = getWrapperBoxInfo(
         [...filter, lastItem].map((m) => m.boundingBox)
       );
-      console.log(pBoundingBox, "pBoundingBox");
 
       const fixChildren = [...filter, lastItem].map((m) => {
         const x = m.boundingBox.x - pBoundingBox.x;
@@ -274,7 +286,7 @@ export function calcResizeBoxInfoWithoutRotate({
     });
     // 为空说明点的是父级，那么只移动父级
     if (resList.length === 0) resList.push(first);
-    return resList;
+    return [...resList, ...childFlatList];
   });
 
   return {
@@ -282,6 +294,32 @@ export function calcResizeBoxInfoWithoutRotate({
     target: _target.flat(Infinity),
     lines, // 辅助线
   };
+}
+
+function scaleList(
+  list: any,
+  scaleX: number,
+  scaleY: number,
+  flatList: any = []
+): any {
+  // 如果该节点有子节点，递归地应用缩放操作
+  if (list && list.length) {
+    for (let i = 0; i < list.length; i++) {
+      const ele = list[i];
+      // 更新节点的坐标和尺寸
+      ele.boundingBox.x = ele.boundingBox.x * scaleX;
+      ele.boundingBox.y = ele.boundingBox.y * scaleY;
+      ele.boundingBox.width = ele.boundingBox.width * scaleX;
+      ele.boundingBox.height = ele.boundingBox.height * scaleY;
+
+      flatList.push(ele);
+      ele.children &&
+        ele.children.length &&
+        scaleList(ele.children, scaleX, scaleY, flatList);
+    }
+  }
+
+  return flatList;
 }
 
 /**

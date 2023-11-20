@@ -33,15 +33,15 @@
 </template>
 
 <script setup lang="ts">
-import { ISprite, IStage } from "../meta-data/types";
+import { ISprite } from "../meta-data/types";
 import SpriteContainer from "./sprite-container.vue";
 
 defineOptions({
   name: "sprite-tree",
 });
 
-const props = defineProps<{
-  stage: IStage;
+ defineProps<{
+  stage: ISprite;
   spriteList: ISprite[];
   registerSpriteMetaMap: any;
 }>();

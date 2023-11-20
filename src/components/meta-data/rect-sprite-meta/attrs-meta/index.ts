@@ -61,7 +61,7 @@ export const configSchemaMap: Record<PROP_ENUM, IConfigSchema> = {
     label: "填充色",
     valueType: "color",
     path: "attrs.fill",
-    renderComponent: "color-picker",
+    renderComponent: "color-pickers",
     defaultValue: "#ccc",
     inValFormat: ({ value }: IParams) => {
       return value;

@@ -12,10 +12,10 @@
 
 <script setup lang="ts">
 import { onMounted, onUnmounted, reactive, inject } from "vue";
-import { ISprite, IStage } from "../meta-data/types";
+import { ISprite } from "../meta-data/types";
 
 const props = defineProps<{
-  stage: IStage;
+  stage: ISprite;
   spriteList: ISprite[];
 }>();
 const emits = defineEmits(["select-area-move"]);
@@ -76,8 +76,8 @@ function handleDown(e: MouseEvent) {
   stageInfo = svgRef.value.getBoundingClientRect();
 
   setStartPoint({
-    x: (e.clientX - stageInfo.x) / props.stage.scale,
-    y: (e.clientY - stageInfo.y) / props.stage.scale,
+    x: (e.clientX - stageInfo.x) / props.stage.attrs.scale,
+    y: (e.clientY - stageInfo.y) / props.stage.attrs.scale,
   });
 
   setSelectArea({
@@ -93,8 +93,8 @@ function handleMove(e: MouseEvent) {
   e.preventDefault();
 
   setEndPoint({
-    x: (e.clientX - stageInfo.x) / props.stage.scale,
-    y: (e.clientY - stageInfo.y) / props.stage.scale,
+    x: (e.clientX - stageInfo.x) / props.stage.attrs.scale,
+    y: (e.clientY - stageInfo.y) / props.stage.attrs.scale,
   });
 
   const minX = Math.min(startPoint.x, endPoint.x);

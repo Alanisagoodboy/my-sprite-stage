@@ -3,14 +3,15 @@
     data-sprite-type="stage"
     class="stage-container"
     xmlns="http://www.w3.org/2000/svg"
-    :height="height"
-    :width="width"
+    :height="stage.attrs.height"
+    :width="stage.attrs.width"
     :style="{
-      'background-color': backgroundColor,
+      'background-color': stage.attrs.backgroundColor,
+      'background-image': stage.attrs.backgroundGradient,
     }"
     ref="svgRef"
-    :viewBox="`0, 0, ${width}, ${height}`"
-    :transform="`scale(${scale}) translate(${d.dx}, ${d.dy})`"
+    :viewBox="`0, 0, ${stage.attrs.width}, ${stage.attrs.height}`"
+    :transform="`scale(${stage.attrs.scale}) translate(${d.dx}, ${d.dy})`"
     @mousewheel="mousewheel"
     @mousedown="mousedown"
   >
@@ -32,10 +33,10 @@ const d = reactive({
 });
 
 const props = defineProps({
-  width: [Number, String],
-  height: [Number, String],
-  scale: [Number],
-  backgroundColor: [String],
+  stage:{
+    type: Object,
+    default: () => ({}),
+  }
 });
 const emits = defineEmits(["stage-scale"]);
 
@@ -47,7 +48,7 @@ defineExpose({ svgRef });
 
 function mousewheel(e: WheelEvent) {
   e.preventDefault();
-  const prevScale = props.scale || 0;
+  const prevScale = props.stage.attrs.scale || 0;
   const v = prevScale + (e.deltaY < 0 ? 0.1 : -0.1);
   const _scale = Math.max(Math.min(1.5, v), 0.2);
   emits("stage-scale", _scale);
@@ -67,8 +68,8 @@ function mousedown(e: MouseEvent) {
   // const gy = group.transform("translateY") as any as number;
 
   function mousemove(event: MouseEvent) {
-    d.dx = (event.clientX - downX + lastPoint.dx) / props.scale!;
-    d.dy = (event.clientY - downY + lastPoint.dy) / props.scale!;
+    d.dx = (event.clientX - downX + lastPoint.dx) / props.stage.attrs.scale!;
+    d.dy = (event.clientY - downY + lastPoint.dy) / props.stage.attrs.scale!;
   }
 
   function mouseup() {

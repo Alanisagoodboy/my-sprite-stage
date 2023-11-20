@@ -1,5 +1,6 @@
 import { Component } from "vue";
 export enum SPRITE_NAME {
+  STAGE = "Stage", // 舞台
   TEXT = "TextSprite", // 文本
   RECT = "RectSprite", // 矩形
   LINE = "LineSprite", // 线段
@@ -75,11 +76,11 @@ export interface Line {
 export interface ISpriteMeta {
   title: string; // 精灵名字
   type: SPRITE_NAME; // 精灵类型
-  createInitData: (...args: any[]) => ISprite; // 创建精灵的初始数据函数
+  createInitData: any; // 创建精灵的初始数据函数
   icon?: any; // 图标
   component?: Component; // 精灵组件, 组合精灵没有对应精灵组件
-  resizePoints: "all" | "empty"; // 矩形选框的句柄形变点配置
-  isShowRotateHandle: boolean; // 是否可以旋转
+  resizePoints?: "all" | "empty"; // 矩形选框的句柄形变点配置
+  isShowRotateHandle?: boolean; // 是否可以旋转
   anchors?: Record<string, any>; // 锚点
   ports?: Record<string, any>; // 连线桩
   attrsConfig?: Record<string, any>; // 属性配置

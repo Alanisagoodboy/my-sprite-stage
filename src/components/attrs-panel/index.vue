@@ -37,6 +37,13 @@
                 :model-value="getValueFromModel(item)"
                 @update:modelValue="setValueToModel($event, item)"
               ></el-color-picker>
+              <ColorPicker
+                v-if="item.renderComponent === 'color-pickers'"
+                useType="both"
+                :[getColorType(item).modelValue]="getValueFromModel(item)"
+                @update:pureColor="setValueToModel($event, item)"
+                @update:gradientColor="setValueToModel($event, item)"
+              ></ColorPicker>
             </el-form-item>
           </el-form>
         </el-card>
@@ -46,8 +53,10 @@
 </template>
 
 <script setup lang="ts">
+import { ColorPicker } from "colorpickers";
+import "colorpickers/style.css";
 import { computed } from "vue";
-import { ISprite, IStage, SPRITE_NAME } from "../meta-data/types";
+import { ISprite, SPRITE_NAME } from "../meta-data/types";
 import { default_sprite_data } from "../meta-data/index";
 
 // @ts-ignore
@@ -60,36 +69,50 @@ import { findById } from "../../utils";
 
 const props = defineProps<{
   // 画布数据
-  stage: IStage;
+  stage: ISprite;
   // 所有精灵
   spriteList: ISprite[];
-  // 活跃的精灵列表
-  activeSpriteList: ISprite[];
+  // 活跃精灵ids Set
+  activeIdsSet: Set<string>;
 }>();
 
 const emits = defineEmits(["updateSprite"]);
 
+// 计算活跃精灵的数据
+const activeSpriteList = computed(() => {
+  const list: ISprite[] = [];
+  props.activeIdsSet.forEach((id) => {
+    const sprite = findById(props.spriteList, id);
+    sprite && list.push(sprite);
+  });
+  return list;
+});
+
 // 属性配置
 const attrsConfig = computed(() => {
   try {
-    if (props.activeSpriteList.length === 1) {
-      const sprite = findById(props.spriteList, props.activeSpriteList[0].id);
-      if (!sprite) return null;
-      const { type } = sprite;
+    // 如果单选一个精灵，则获取其属性配置
+    if (activeSpriteList.value.length === 1) {
+      const { type } = activeSpriteList.value[0];
       const attrsConfig = default_sprite_data[type].attrsConfig;
       return attrsConfig;
-    } else if (props.activeSpriteList.length > 1) {
+    }
+    // 如果选中多个精灵，则默认展示展示组的属性配置
+    else if (activeSpriteList.value.length > 1) {
       const attrsConfig = default_sprite_data[SPRITE_NAME.GROUP].attrsConfig;
       return attrsConfig || null;
     } else {
-      return null;
+      // 否则显示舞台的属性配置
+      const attrsConfig = default_sprite_data[SPRITE_NAME.STAGE].attrsConfig;
+      return attrsConfig || null;
     }
+    // 其他情况不显示属性配置列表
   } catch (error) {
     return null;
   }
 });
 
-// 分类列表
+// 属性配置中的分类列表
 const classList = computed(() => {
   try {
     if (attrsConfig.value) {
@@ -111,15 +134,22 @@ const classList = computed(() => {
   }
 });
 
+// 表单渲染
 const form = computed(() => {
-  if (props.activeSpriteList.length === 1) {
-    const sprite = findById(props.spriteList, props.activeSpriteList[0].id);
-    return sprite;
-  } else if (props.activeSpriteList.length > 1) {
-    const sprite = findById(props.spriteList, props.activeSpriteList[0].id);
-    return { ...sprite, id: "多个" };
+  if (activeSpriteList.value.length === 1) {
+    // 单个精灵时，默认展示第一个精灵的数据
+    // 但第一个精灵为组的时候,默认展示组内的第一个精灵的数据
+    if (activeSpriteList.value[0].type === SPRITE_NAME.GROUP) {
+      const children = activeSpriteList.value[0].children!;
+      return children[0];
+    }
+    return activeSpriteList.value[0];
+  } else if (activeSpriteList.value.length > 1) {
+    // 多个精灵时，默认展示第一个精灵的数据
+    return { ...activeSpriteList.value[0], id: "多个" };
   } else {
-    return { id: null };
+    // 显示舞台
+    return { ...props.stage };
   }
 });
 
@@ -136,12 +166,55 @@ function getValueFromModel(item: IConfigSchema) {
   return finalVal;
 }
 
+function getColorType(item: any) {
+  const isPure = typeof _.get(form.value, item.path) === "string";
+  const colorType = isPure ? "pureColor" : "gradientColor";
+  return {
+    modelValue: colorType,
+    update: `update:${colorType}`,
+  };
+}
+
+function gradientColorChange(val) {
+  console.log(val, "val");
+}
+
 // 设置传出数据
 function setValueToModel(val: any, item: IConfigSchema) {
+  console.log(item.path, val, "kkk");
+
+  // 如果是舞台，则更新舞台数据
+  if (activeSpriteList.value.length === 0) {
+    emits("updateSprite", {
+      type: SPRITE_NAME.STAGE,
+      stateSet: {
+        path: item.path,
+        value: item.outValFormat
+          ? item.outValFormat({
+              schema: item,
+              value: val,
+            })
+          : val,
+      },
+    });
+
+    return;
+  }
+  const groupList = activeSpriteList.value.filter(
+    (f) => f.type === SPRITE_NAME.GROUP
+  );
+  const nonGroupList = activeSpriteList.value.filter(
+    (f) => f.type !== SPRITE_NAME.GROUP
+  );
+
+  // 如果是组，则更新组内第一级精灵
+  // 如果是非组，则更新所有精灵
+  const id = [
+    ...nonGroupList.map((m) => m.id),
+    ...groupList.flatMap((n) => n.children!.map((o: ISprite) => o.id)),
+  ];
   emits("updateSprite", {
-    id: props.activeSpriteList
-      .filter((f) => f.type !== SPRITE_NAME.GROUP)
-      .map((m) => m.id),
+    id: id,
     stateSet: {
       path: item.path,
       value: item.outValFormat

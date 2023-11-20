@@ -64,7 +64,7 @@ import {
   // type Ref,
   nextTick,
 } from "vue";
-import { IBoundingBox, IStage, ISprite, SPRITE_NAME } from "../meta-data/types";
+import { ISprite, SPRITE_NAME } from "../meta-data/types";
 
 import { getWrapperBoxInfo } from "../../utils/index";
 // import { IHandleTarget } from "../../types";
@@ -101,7 +101,7 @@ onUnmounted(() => {
 
 const dotSize = computed(() => {
   const size = 6;
-  return size / props.stage.scale;
+  return size / props.stage.attrs.scale;
 });
 
 // 是否正在拖拽
@@ -113,7 +113,7 @@ function setIsMoving(val: boolean) {
 
 const props = defineProps<{
   // 舞台尺寸
-  stage: IStage;
+  stage: ISprite;
   // 精灵列表
   spriteList: ISprite[];
   // 活跃精灵ids Set
@@ -198,7 +198,8 @@ const resizePoints = computed(() => {
       return [];
     }
   } else {
-    return dotList;
+    // 只支持单个缩放，不支持多选缩放
+    return [];
   }
   return [];
   // return dotList;
@@ -247,7 +248,7 @@ function onDotMousedown(dotInfo: IDot, e: MouseEvent) {
   const onMousemove = (moveEv: MouseEvent) => {
     setIsMoving(true);
     const { target, lines } = calcResizeBoxInfoWithoutRotate({
-      stage: props.stage,
+      stage: props.stage.attrs,
       handleType: dotInfo.side,
       rect: lastDragInfo,
       needChangeSprite,
@@ -257,7 +258,7 @@ function onDotMousedown(dotInfo: IDot, e: MouseEvent) {
     });
     auxiliaryLine.value = lines;
 
-      emits(
+    emits(
       "updateSprite",
       target.map((m: any) => {
         return {
@@ -341,7 +342,7 @@ async function onMousedown(e: MouseEvent) {
     setIsMoving(true);
     const { target, lines } = calcMoveBoxInfoWithoutRotate({
       rect: lastDragInfo,
-      stage: props.stage,
+      stage: props.stage.attrs,
       needChangeSprite,
       staticSpriteList,
       startEv: e,

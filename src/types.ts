@@ -1,5 +1,6 @@
-import { IBoundingBox } from './components/meta-data/types';
+import { IBoundingBox, SPRITE_NAME } from './components/meta-data/types';
 export interface IUpdateParams {
+  type?: SPRITE_NAME,
   id: string | string[];
   stateSet: IStateSet | IStateSet[];
 }

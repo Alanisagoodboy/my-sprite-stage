@@ -2,8 +2,8 @@
   <div class="editor-container">
     <div class="header">
       <div class="header-bar">
-        <!-- <button @click="handleGroup">组合</button>
-        <button @click="handleCancelGroup">解组</button> -->
+        <button @click="handleGroup">组合</button>
+        <button @click="handleCancelGroup">解组</button>
 
         <button @click="redo">重做</button>
         <button @click="undo">撤销</button>
@@ -17,7 +17,7 @@
           <p>预览</p>
           <div class="preview-container">
             <PreviewWindowSprite
-              :stage="stage"
+              :stage="stage.attrs"
               :sprite-list="spriteList"
               :register-sprite-meta-map="registerSpriteMetaMap"
             />
@@ -48,7 +48,7 @@
         <div class="center-content" ref="contentWrapper">
           <Stage
             ref="stageRef"
-            v-bind="stage"
+            :stage="stage"
             @stage-scale="handleScale"
             @drop="handleDrop"
             @dragover="handleDragOver"
@@ -81,7 +81,7 @@
 
             <!-- 锚点渲染器: 为线条或者部分图形增加辅助功能 -->
             <!-- <AnchorPoints
-              :stage="stage"
+             :stage="stage.attrs"
               :spriteList="spriteList"
               :activeSpriteList="activeSpriteList"
               @select="select"
@@ -114,12 +114,13 @@
       </div>
       <div class="right" v-if="1">
         <!-- 属性面板渲染器 -->
-        <!-- <AttrsPanel
+        <AttrsPanel
           :stage="stage"
           :spriteList="spriteList"
-          :activeSpriteList="activeSpriteList"
+          :activeIdsSet="activeIdsSet"
           @updateSprite="updateSprite"
-        /> -->
+          
+        />
       </div>
     </div>
   </div>
@@ -155,16 +156,11 @@ import {
   ISpriteMeta,
   SPRITE_NAME,
 } from "./components/meta-data/types";
-import {
-  findById,
-  getCoordinateInGroupFromStage,
-  getCoordinateInStage,
-  getCoordinateInStageFromGroup,
-} from "./utils";
-import { IHandle, IStateSet, IUpdateParams } from "./types";
+import { findById, getCoordinateInStage } from "./utils";
+import { IHandle, IUpdateParams } from "./types";
 
 const componentList = Object.values(default_sprite_data)
-  .filter((f) => f.type !== SPRITE_NAME.GROUP)
+  .filter((f) => ![SPRITE_NAME.GROUP, SPRITE_NAME.STAGE].includes(f.type))
   .map((m) => {
     return {
       type: m.type,
@@ -176,12 +172,7 @@ const componentList = Object.values(default_sprite_data)
 console.log(componentList, "componentList");
 
 // 舞台信息
-const stage = reactive({
-  width: 1920,
-  height: 1080,
-  scale: 1,
-  backgroundColor: "#fff",
-});
+const stage = reactive(default_sprite_data.Stage.createInitData());
 
 // 初始化的时候，计算合适的缩放比例
 onMounted(() => {
@@ -195,10 +186,10 @@ function initScale() {
     const { width, height } = contentWrapper.getBoundingClientRect();
     // 计算横向的缩放比例，与纵向的缩放比例，取最小值,这里减10，是为了让图形与四周有个间隙，避免贴合太近不容易看清边框
     const scale = Math.min(
-      (width - 10) / stage.width,
-      (height - 10) / stage.height
+      (width - 10) / stage.attrs.width,
+      (height - 10) / stage.attrs.height
     );
-    stage.scale = scale;
+    stage.attrs.scale = scale;
   }
 }
 
@@ -208,57 +199,7 @@ const history = new History();
 const stageRef = ref<InstanceType<typeof Stage> | null>(null);
 const contentWrapper = ref(null);
 // 精灵列表
-const spriteList = ref<ISprite[]>([
-  {
-    id: "0.7680960015111178",
-    type: "GroupSprite",
-    attrs: { fill: "#eee" },
-    boundingBox: {
-      x: 605.9999847412109,
-      y: 389.6000061035156,
-      width: 429,
-      height: 250.39999389648438,
-    },
-    children: [
-      {
-        id: "0.8076409550127963",
-        type: "GroupSprite",
-        attrs: { fill: "#eee" },
-        boundingBox: { x: 160, y: 0, width: 269, height: 172 },
-        children: [
-          {
-            id: "0.26289797622942057",
-            type: "RectSprite",
-            attrs: {
-              fill: "#eee",
-              content: "",
-              stroke: "#398cfe",
-              strokeWidth: 1,
-            },
-            boundingBox: { x: 0, y: 0, width: 160, height: 100 },
-          },
-          {
-            id: "0.6414539690382224",
-            type: "RectSprite",
-            attrs: {
-              fill: "#eee",
-              content: "",
-              stroke: "#398cfe",
-              strokeWidth: 1,
-            },
-            boundingBox: { x: 109, y: 72, width: 160, height: 100 },
-          },
-        ],
-      },
-      {
-        id: "0.7944659051280896",
-        type: "RectSprite",
-        attrs: { fill: "#eee", content: "", stroke: "#398cfe", strokeWidth: 1 },
-        boundingBox: { x: 0, y: 150.39999389648438, width: 160, height: 100 },
-      },
-    ],
-  },
-]);
+const spriteList = ref<ISprite[]>([]);
 
 // 活跃（被选中状态的）精灵id列表，
 const activeIdsSet = ref<Set<string>>(new Set());
@@ -362,7 +303,7 @@ function addSpriteToStage({
   const _point = getCoordinateInStage(
     stageRef.value!.svgRef as HTMLElement,
     point,
-    stage.scale
+    stage.attrs.scale
   );
 
   updateSprite({
@@ -392,7 +333,16 @@ function updateSprite(
     : [updateParams];
 
   _updateParams.forEach((item) => {
-    const { id, stateSet } = item;
+    const { id, stateSet, type } = item;
+    const _stateSet = Array.isArray(stateSet) ? stateSet : [stateSet];
+    if (type === SPRITE_NAME.STAGE) {
+      
+      // 遍历设置器
+      _stateSet.forEach((item) => {
+        _.set(stage, item.path, item.value, "error");
+      });
+    }
+
     // 为多个的时候，批量设置
     const _id = Array.isArray(id) ? id : [id];
     // 如果操作时选择
@@ -401,7 +351,6 @@ function updateSprite(
       const sprite = findById(spriteList.value, item);
       // 状态设置器有值
       if (sprite && stateSet) {
-        const _stateSet = Array.isArray(stateSet) ? stateSet : [stateSet];
         // 遍历设置器
         _stateSet.forEach((item) => {
           _.set(sprite, item.path, item.value, "error");
@@ -445,81 +394,81 @@ function handleSelectAreaMove(activeList: ISprite[]) {
 }
 
 // 组合
-// function handleGroup() {
-//   // 1.组合只针对被选中的精灵
-//   const groupMeta = default_sprite_data[SPRITE_NAME.GROUP];
-//   // registerSprite(groupMeta);
-//   const groupSpriteData = groupMeta.createInitData(
-//     activeSpriteList.value.map((m) => m.boundingBox)
-//   );
-//   // 2.针对选中的元素计算出组合图形的bounding，并修改子元素的boundingBox
-//   const { x, y } = groupSpriteData.boundingBox;
-//   groupSpriteData.children.push(
-//     ...activeSpriteList.value.map((m) => {
-//       return {
-//         ...m,
-//         boundingBox: {
-//           x: m.boundingBox.x - x,
-//           y: m.boundingBox.y - y,
-//           width: m.boundingBox.width,
-//           height: m.boundingBox.height,
-//         },
-//       };
-//     })
-//   );
+function handleGroup() {
+  // 1.组合只针对被选中的精灵
+  // 当选中的精灵大于1
+  if (activeIdsSet.value.size <= 1) return;
 
-//   // 3.将组合元素添加进去，并选中
-//   const filter = spriteList.value.filter((sprite) => {
-//     return !activeSpriteList.value.find((f) => f.id === sprite.id);
-//   });
-//   spriteList.value = [...filter, groupSpriteData];
-//   setActiveSpriteList([groupSpriteData]);
-// }
+  const groupMeta = default_sprite_data[SPRITE_NAME.GROUP];
 
-/**
- * 解组
- * 解除最最近的一个组
- * 对应的数据是
- */
+  // 2.过滤出选中的精灵,并计算由他们组成的组合图形的boundingBox
+  const filter: ISprite[] = spriteList.value.filter((sprite: ISprite) =>
+    activeIdsSet.value.has(sprite.id)
+  );
+  // 3.创建并修正组合精灵
+  const groupSpriteData = groupMeta.createInitData({
+    boundingList: filter.map((m: ISprite) => m.boundingBox),
+  });
 
-// function handleCancelGroup() {
-//   // 如果被选中的是一个并且是组
-//   if (activeSpriteList.value.length === 1) {
-//     const item = activeSpriteList.value[0];
-//     const group = spriteList.value.find((f) => f.id === item.id);
-//     if (!group || !group.children) return;
+  // 4.修正子元素的boundingBox
+  const children = filter.map((m) => {
+    return {
+      ...m,
+      boundingBox: {
+        x: m.boundingBox.x - groupSpriteData.boundingBox.x,
+        y: m.boundingBox.y - groupSpriteData.boundingBox.y,
+        width: m.boundingBox.width,
+        height: m.boundingBox.height,
+      },
+    };
+  });
+  groupSpriteData.children = children;
 
-//     // 1.修正第一层的位置
-//     const fixGroupChildren = group.children.map((m) => {
-//       return {
-//         ...m,
-//         boundingBox: {
-//           x: m.boundingBox.x + group.boundingBox.x,
-//           y: m.boundingBox.y + group.boundingBox.y,
-//           width: m.boundingBox.width,
-//           height: m.boundingBox.height,
-//         },
-//       };
-//     });
-//     console.log(fixGroupChildren, "fixGroupChildren");
+  // 5.需要在精灵列表中清除被选中的精灵,然后添加组合精灵
+  spriteList.value = [
+    ...spriteList.value.filter(
+      (sprite: ISprite) => !activeIdsSet.value.has(sprite.id)
+    ),
+    groupSpriteData,
+  ];
 
-//     // 过滤出组中第一层 是组和不是组的数据
-//     const filterList = fixGroupChildren.filter(
-//       (f: ISprite) => f.type !== SPRITE_NAME.GROUP
-//     );
-//     const filterGroupList = fixGroupChildren.filter(
-//       (f: ISprite) => f.type === SPRITE_NAME.GROUP
-//     );
-//     const newList = [...filterList, ...filterGroupList];
-//     const delIndex = spriteList.value.findIndex((f) => f.id === group.id);
-//     spriteList.value.splice(delIndex, 1);
-//     spriteList.value.push(...newList);
-//     setActiveSpriteList(newList);
-//   }
-// }
+  // 6.选中组合图形
+  setActiveIds([groupSpriteData.id]);
+}
+
+// 解组
+function handleCancelGroup() {
+  // 如果被选中的是一个并且是组, 目前只支持顶层解组
+  if (activeIdsSet.value.size === 1) {
+    const [id] = activeIdsSet.value;
+    const item = spriteList.value.find((f: ISprite) => f.id === id);
+    if (item?.type === SPRITE_NAME.GROUP) {
+      // 1.修正第一层的位置
+      const fixGroupChildren = item.children?.map((m) => {
+        return {
+          ...m,
+          boundingBox: {
+            x: m.boundingBox.x + item.boundingBox.x,
+            y: m.boundingBox.y + item.boundingBox.y,
+            width: m.boundingBox.width,
+            height: m.boundingBox.height,
+          },
+        };
+      });
+      // 2.将子级添加到精灵列表中
+      spriteList.value = [
+        ...spriteList.value.filter((f: ISprite) => f.id !== item.id),
+        ...fixGroupChildren,
+      ];
+
+      // 3.剔除组合父级,选中子级
+      setActiveIds(fixGroupChildren.map((m) => m.id));
+    }
+  }
+}
 
 function handleScale(scale: number) {
-  stage.scale = scale;
+  stage.attrs.scale = scale;
 }
 
 function redo() {
@@ -559,16 +508,6 @@ function addPoint() {
     mode.value = "addPoint";
   }
 }
-
-// 向后代注入当前注册的精灵信息
-provide("registerSpriteMetaMap", registerSpriteMetaMap);
-
-// // 向后代注入舞台所有数据信息
-provide("stageApi", {
-  mode: mode,
-  stage: stage,
-  spriteList: spriteList,
-});
 
 defineOptions({
   name: "NewPage",

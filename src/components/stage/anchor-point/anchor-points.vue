@@ -21,12 +21,12 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
-import { ICoordinate, ISprite, IStage } from "../../meta-data/types";
+import { ICoordinate, ISprite,  } from "../../meta-data/types";
 import { default_sprite_data } from "../../meta-data";
 
 const p = defineProps<{
   // 画布数据
-  stage: IStage;
+  stage: ISprite;
   // 所有精灵
   spriteList: ISprite[];
   // 活跃的精灵列表
@@ -41,7 +41,7 @@ const emits = defineEmits([
 
 const r = computed(()=> {
   const size = 4
-  return size / p.stage.scale
+  return size / p.stage.attrs.scale
 })
 
 // 渲染的锚点信息
@@ -162,8 +162,8 @@ function handleMove(e: MouseEvent) {
     activeInfo: { sprite },
   } = recordPointInfo;
 
-  const x = (e.clientX - downPoint.x) / p.stage.scale + +initPoint.x;
-  const y = (e.clientY - downPoint.y) / p.stage.scale + +initPoint.y;
+  const x = (e.clientX - downPoint.x) / p.stage.attrs.scale + +initPoint.x;
+  const y = (e.clientY - downPoint.y) / p.stage.attrs.scale + +initPoint.y;
 
   // 设置新的锚点坐标
   recordPointInfo.setTargetAnchorPoints(index, { x, y });

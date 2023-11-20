@@ -1,23 +1,21 @@
 import { IBoundingBox } from "./../types";
 import { getWrapperBoxInfo } from "../../../utils/index";
-import { classifyList, configSchemaMap } from "./attrs-meta/index"
+import { classifyList, configSchemaMap } from "./attrs-meta/index";
 /* 组合精灵 元数据 */
 
 import { ISpriteMeta, SPRITE_NAME } from "../types";
 export const groupSpriteMeta: ISpriteMeta = {
   title: "组合",
   type: SPRITE_NAME.GROUP,
-  createInitData(boundingList: IBoundingBox[]) {
+  createInitData({ boundingList }: { boundingList: IBoundingBox[] }) {
     const boundingBox = getWrapperBoxInfo(boundingList);
-    console.log(boundingBox, 'boundingBox');
-    
+    console.log(boundingBox, "boundingBox");
+
     return {
       id: Math.random() + "",
       type: SPRITE_NAME.GROUP,
-      attrs: {
-        fill: "#eee",
-      },
-      boundingBox,
+      attrs: {},
+      boundingBox: boundingBox,
       children: [],
     };
   },
