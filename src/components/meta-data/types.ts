@@ -49,7 +49,7 @@ export interface ISprite<IProps = any> {
 }
 
 // 精灵当前操作模式
-type Mode = 'default' | 'edit'
+type Mode = "default" | "edit";
 
 // 默认图形props
 export interface IDefaultGraphicProps {
@@ -110,3 +110,37 @@ export interface IPort {
 export type IStageApis = any;
 
 export type EventTypeEnum = any;
+
+/* *********************************************** */
+// 配置schema
+export interface IConfigSchema {
+  // 属性配置描述
+  prop: string; // 属性标识
+  label: string; // 属性名字
+  path?: string; // 属性的路径
+  renderComponent: string; // 对用用来渲染的组件类型
+  valueType?: "string" | "number" | "color"; // value类型
+  defaultValue?: any; // 默认值
+  inValFormat?: Function; // 接收数据的格式化
+  outValFormat?: Function; // 设置数据的格式化
+  groupProps?: Record<string, IConfigSchema> // 组合属性
+}
+
+// 描述数据的类型
+export enum ENUM_SCHEMA_TYPE {
+  base,
+  group,
+}
+
+// 属性面板分类的item
+export interface IClassifyItem {
+  name: string; // 面板key
+  title: string; // 描述信息
+  configList: IConfigSchema[]; // 配置列表
+}
+
+
+export enum ENUM_RenderComponent {
+  'textJustifyAlign' = 'text-justify-align',
+  "textFontFamily" = "text-font-family",
+}

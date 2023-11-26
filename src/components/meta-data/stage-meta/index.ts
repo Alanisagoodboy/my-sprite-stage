@@ -1,5 +1,6 @@
 /* 舞台精灵 元数据 */
 
+import GenNonDuplicateID from "../../../utils/getUuid";
 import { ISpriteMeta, SPRITE_NAME } from "../types";
 import { classifyList, configSchemaMap } from "./attrs-meta/index";
 export const stageMeta: ISpriteMeta = {
@@ -7,7 +8,7 @@ export const stageMeta: ISpriteMeta = {
   type: SPRITE_NAME.STAGE,
   createInitData() {
     return {
-      id: Math.random() + "",
+      id: GenNonDuplicateID(),
       type: SPRITE_NAME.STAGE,
       attrs: {
         width: 1920,

@@ -12,7 +12,7 @@ export const polylineSpriteMeta: ISpriteMeta = {
       type: SPRITE_NAME.POLYLINE,
       attrs: {
         stroke: "#84db92",
-        strokeWidth: 3,
+        strokeWidth: 5,
         points: [
           {
             x: 0,
@@ -35,8 +35,8 @@ export const polylineSpriteMeta: ISpriteMeta = {
       boundingBox: {
         x: 30,
         y: 100,
-        width: 60,
-        height: 40,
+        width: 200,
+        height: 200,
       },
     };
   },

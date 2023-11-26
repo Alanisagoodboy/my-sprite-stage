@@ -56,6 +56,9 @@ watch(
   () => props.content,
   () => {
     textInfo.content = props.content || "&nbsp;";
+  },
+  {
+    immediate: true,
   }
 );
 
@@ -122,11 +125,12 @@ defineExpose({
 
 <style scoped>
 .auto-size {
-  width: 100%;
+  /* width: 100%;
   height: 100%;
   display: inline-flex;
   justify-content: center;
-  align-items: center;
+  align-items: center; */
+  display: inline-block;
   outline: none;
   word-break: break-all;
 }

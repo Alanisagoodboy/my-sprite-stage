@@ -11,23 +11,38 @@ dependencies:
   colorpickers:
     specifier: ^1.0.2
     version: 1.0.2(@aesoper/normal-utils@0.1.5)(@popperjs/core@2.11.8)(@vueuse/core@10.5.0)(gradient-parser@1.0.2)(lodash-es@4.17.21)(tinycolor2@1.6.0)(vue-types@4.2.1)(vue@3.3.4)
+  css-gradient-angle-to-svg-gradient-coordinates:
+    specifier: ^1.1.0
+    version: 1.1.0
+  gradient-parser:
+    specifier: ^1.0.2
+    version: 1.0.2
+  lodash:
+    specifier: ^4.17.21
+    version: 4.17.21
+  nanoid:
+    specifier: ^5.0.3
+    version: 5.0.3
   roughjs:
     specifier: ^4.6.4
     version: 4.6.4
+  tinycolor2:
+    specifier: ^1.6.0
+    version: 1.6.0
   vue:
     specifier: ^3.3.4
     version: 3.3.4
 
 devDependencies:
+  '@types/gradient-parser':
+    specifier: ^0.1.5
+    version: 0.1.5
   '@vitejs/plugin-vue':
     specifier: ^4.2.3
     version: 4.2.3(vite@4.4.5)(vue@3.3.4)
   element-plus:
     specifier: ^2.4.1
     version: 2.4.1(vue@3.3.4)
-  lodash:
-    specifier: ^4.17.21
-    version: 4.17.21
   typescript:
     specifier: ^5.0.2
     version: 5.0.2
@@ -306,6 +321,10 @@ packages:
     resolution: {integrity: sha512-Ccy0NlLkzr0Ex2FKvh2X+OyERHXJ88XJ1MXtsI9y9fGexlaXaVTPzBCRBwIxFkORuOb+uBqeu+RqnpgYTEZRUQ==}
     dev: true
 
+  /@types/gradient-parser@0.1.5:
+    resolution: {integrity: sha512-r7K3NkJz3A95WkVVmjs0NcchhHstC2C/VIYNX4JC6tieviUNo774FFeOHjThr3Vw/WCeMP9kAT77MKbIRlO/4w==}
+    dev: true
+
   /@types/lodash-es@4.17.10:
     resolution: {integrity: sha512-YJP+w/2khSBwbUSFdGsSqmDvmnN3cCKoPOL7Zjle6s30ZtemkkqhjVfFqGwPN7ASil5VyjE2GtyU/yqYY6mC0A==}
     dependencies:
@@ -545,6 +564,10 @@ packages:
       vue-types: 4.2.1(vue@3.3.4)
     dev: false
 
+  /css-gradient-angle-to-svg-gradient-coordinates@1.1.0:
+    resolution: {integrity: sha512-6/eMpgZhv0QFWumgky50fdS3AQHyojMlrrLmhpSrVRfHEcMMyUzfWzuqaLIBc5DiM94Tnw4LDMnFtRJriT+Pjw==}
+    dev: false
+
   /csstype@3.1.2:
     resolution: {integrity: sha512-I7K1Uu0MBPzaFKg4nI5Q7Vs2t+3gWWW648spaF+Rg7pI9ds18Ugn+lvg4SHczUdKlHI5LWBXyqfS8+DufyBsgQ==}
 
@@ -662,7 +685,6 @@ packages:
 
   /lodash@4.17.21:
     resolution: {integrity: sha512-v2kDEe57lecTulaDIuNTPy3Ry4gLGJ6Z1O3vE1krgXZNrsQ+LFTGHVxVjcXPs17LhbZVGedAJv8XZ1tvj5FvSg==}
-    dev: true
 
   /lru-cache@6.0.0:
     resolution: {integrity: sha512-Jo6dJ04CmSjuznwJSS3pUeWmd/H0ffTlkXXgwZi+eq1UCmqQwCh+eLsYOYCwY991i2Fah4h1BEMCx4qThGbsiA==}
@@ -696,6 +718,12 @@ packages:
     resolution: {integrity: sha512-BGcqMMJuToF7i1rt+2PWSNVnWIkGCU78jBG3RxO/bZlnZPK2Cmi2QaffxGO/2RvWi9sL+FAiRiXMgsyxQ1DIDA==}
     engines: {node: ^10 || ^12 || ^13.7 || ^14 || >=15.0.1}
     hasBin: true
+
+  /nanoid@5.0.3:
+    resolution: {integrity: sha512-I7X2b22cxA4LIHXPSqbBCEQSL+1wv8TuoefejsX4HFWyC6jc5JG7CEaxOltiKjc1M+YCS2YkrZZcj4+dytw9GA==}
+    engines: {node: ^18 || >=20}
+    hasBin: true
+    dev: false
 
   /normalize-wheel-es@1.2.0:
     resolution: {integrity: sha512-Wj7+EJQ8mSuXr2iWfnujrimU35R2W4FAErEyTmJoJ7ucwTn2hOUSsRehMb5RSYkxXGTM7Y9QpvPmp++w5ftoJw==}

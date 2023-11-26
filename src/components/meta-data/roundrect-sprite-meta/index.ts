@@ -3,12 +3,13 @@ import { ICoordinate } from "./../types";
 
 import { ISprite, ISpriteMeta, SPRITE_NAME } from "../types";
 import RoundRectSprite from "../../sprite/roundrect-sprite/index.vue";
+import GenNonDuplicateID from "../../../utils/getUuid";
 export const roundRectSpriteMeta: ISpriteMeta = {
   title: "圆角矩形",
   type: SPRITE_NAME.ROUND_RECT,
   createInitData() {
     return {
-      id: Math.random() + '',
+      id: GenNonDuplicateID(),
       type: SPRITE_NAME.ROUND_RECT,
       attrs: {
         borderRadius: 30,

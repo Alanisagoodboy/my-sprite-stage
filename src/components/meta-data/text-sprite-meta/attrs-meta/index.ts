@@ -222,16 +222,16 @@ export const classifyList = [
       configSchemaMap.height,
     ],
   },
-  {
-    name: "b", // 分类的字段
-    title: "背景色", // 分类的名称
-    configList: [groupMap["bg-pure-Gradient-color"]],
-  },
-  {
-    name: "c", // 分类的字段
-    title: "边框", // 分类的名称
-    configList: [configSchemaMap.stroke, configSchemaMap.strokeWidth],
-  },
+  // {
+  //   name: "b", // 分类的字段
+  //   title: "背景色", // 分类的名称
+  //   configList: [groupMap["bg-pure-Gradient-color"]],
+  // },
+  // {
+  //   name: "c", // 分类的字段
+  //   title: "边框", // 分类的名称
+  //   configList: [configSchemaMap.stroke, configSchemaMap.strokeWidth],
+  // },
   {
     name: "d", // 分类的字段
     title: "文本", // 分类的名称
@@ -239,7 +239,7 @@ export const classifyList = [
       configSchemaMap.contentFontFamily,
       configSchemaMap.contentFontSize,
       configSchemaMap.contentColor,
-      groupMap["text-justify-align-Content"],
+      // groupMap["text-justify-align-Content"],
     ],
   },
 ];

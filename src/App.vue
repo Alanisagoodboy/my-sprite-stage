@@ -2,11 +2,58 @@
   <div class="editor-container">
     <div class="header">
       <div class="header-bar">
-        <button @click="handleGroup">组合</button>
-        <button @click="handleCancelGroup">解组</button>
+        <el-button
+          :disabled="showGroupBtn"
+          type="primary"
+          size="small"
+          @click="handleGroup"
+          >组合</el-button
+        >
+        <el-button
+          :disabled="showCancelGroupBtn"
+          type="primary"
+          size="small"
+          @click="handleCancelGroup"
+          >解组</el-button
+        >
 
-        <button @click="redo">重做</button>
-        <button @click="undo">撤销</button>
+        <el-button
+          :disabled="!showDeleteBtn"
+          type="danger"
+          size="small"
+          @click="handleDeleteSprite"
+          >删除</el-button
+        >
+
+        <el-button type="danger" size="small" @click="handleClear"
+          >清空舞台</el-button
+        >
+
+        <el-button
+          :disabled="activeIdsSet.size === 0"
+          type="danger"
+          size="small"
+          @click="handleCopy"
+          >复制</el-button
+        >
+        <el-button
+          :disabled="copy.length === 0"
+          type="danger"
+          size="small"
+          @click="handlePaste"
+          >粘贴</el-button
+        >
+
+        <el-button type="primary" :disabled="true" size="small" @click="redo"
+          >重做</el-button
+        >
+        <el-button type="primary" :disabled="true" size="small" @click="undo"
+          >撤销</el-button
+        >
+
+        <el-button type="primary" size="small" @click="addDiySprite"
+          >增加自定义组合元素</el-button
+        >
 
         <!-- <button @click="addPoint">增加锚点</button> -->
       </div>
@@ -17,7 +64,7 @@
           <p>预览</p>
           <div class="preview-container">
             <PreviewWindowSprite
-              :stage="stage.attrs"
+              :stage="stage"
               :sprite-list="spriteList"
               :register-sprite-meta-map="registerSpriteMetaMap"
             />
@@ -80,13 +127,13 @@
             />
 
             <!-- 锚点渲染器: 为线条或者部分图形增加辅助功能 -->
-            <!-- <AnchorPoints
-             :stage="stage.attrs"
+            <AnchorPoints
+              :stage="stage"
               :spriteList="spriteList"
-              :activeSpriteList="activeSpriteList"
+              :activeIdsSet="activeIdsSet"
               @select="select"
               @anchor-point-move="handleAnchorPointMove"
-            /> -->
+            />
 
             <!-- 工具栏渲染器 -->
             <!-- <Toolbar :activeSpriteList="activeSpriteList"></Toolbar> -->
@@ -119,7 +166,6 @@
           :spriteList="spriteList"
           :activeIdsSet="activeIdsSet"
           @updateSprite="updateSprite"
-          
         />
       </div>
     </div>
@@ -138,8 +184,17 @@ import AttrsPanel from "./components/attrs-panel/index.vue";
 import PreviewWindowSprite from "./components/sprite/preview-window-sprite/index.vue";
 // import AuxiliaryLine from "./components/stage/auxiliary-line.vue";
 // import Toolbar from "./components/sprite/toolbar-sprite.vue";
+// import gradientParser from "gradient-parser";
+// var color = gradientParser.parse("linear-gradient(90deg, rgba(170, 71, 188, 1) 0%, rgba(255, 0, 0, 1) 100%)");
+// var color = tinycolor("rgb(255, 0, 0)");
 
-import { ref, shallowRef, provide, reactive, onMounted } from "vue";
+// console.log(color, 'color');
+
+import { useSessionStorage, useRefHistory } from "@vueuse/core";
+
+import { a } from "./default-data";
+
+import { ref, shallowRef, provide, reactive, onMounted, computed } from "vue";
 // import { useResizeObserver } from "@vueuse/core";
 
 import { default_sprite_data } from "./components/meta-data/index";
@@ -156,8 +211,9 @@ import {
   ISpriteMeta,
   SPRITE_NAME,
 } from "./components/meta-data/types";
-import { findById, getCoordinateInStage } from "./utils";
-import { IHandle, IUpdateParams } from "./types";
+import { findById, getCoordinateInStage, deleteSpriteByIds } from "./utils";
+import { IUpdateParams } from "./types";
+import GenNonDuplicateID from "./utils/getUuid";
 
 const componentList = Object.values(default_sprite_data)
   .filter((f) => ![SPRITE_NAME.GROUP, SPRITE_NAME.STAGE].includes(f.type))
@@ -199,7 +255,11 @@ const history = new History();
 const stageRef = ref<InstanceType<typeof Stage> | null>(null);
 const contentWrapper = ref(null);
 // 精灵列表
-const spriteList = ref<ISprite[]>([]);
+const spriteList = useSessionStorage("spriteList", ref<ISprite[]>([]));
+
+const { undo: listUndo, redo: listRedo } = useRefHistory(spriteList, {
+  deep: true,
+});
 
 // 活跃（被选中状态的）精灵id列表，
 const activeIdsSet = ref<Set<string>>(new Set());
@@ -320,14 +380,11 @@ function addSpriteToStage({
     ],
   });
   setActiveIds(sprite.id);
-  history.push(JSON.parse(JSON.stringify(spriteList.value)));
+  // history.push(JSON.parse(JSON.stringify(spriteList.value)));
 }
 
 // 更新精灵属性
-function updateSprite(
-  updateParams: IUpdateParams | IUpdateParams[],
-  handle?: IHandle
-) {
+function updateSprite(updateParams: IUpdateParams | IUpdateParams[]) {
   const _updateParams = Array.isArray(updateParams)
     ? updateParams
     : [updateParams];
@@ -336,7 +393,6 @@ function updateSprite(
     const { id, stateSet, type } = item;
     const _stateSet = Array.isArray(stateSet) ? stateSet : [stateSet];
     if (type === SPRITE_NAME.STAGE) {
-      
       // 遍历设置器
       _stateSet.forEach((item) => {
         _.set(stage, item.path, item.value, "error");
@@ -366,16 +422,6 @@ function select(info: any) {
   if (targetIds) {
     setActiveIds(targetIds);
   }
-
-  // if (mode) {
-  //   updateSprite({
-  //     id: targetIds[0].id,
-  //     stateSet: {
-  //       path: "mode",
-  //       value: mode,
-  //     },
-  //   });
-  // }
 }
 
 // 锚点移动时 待优化 todo
@@ -385,6 +431,29 @@ function handleAnchorPointMove(info: any) {
 
 // 锚点移动结束
 // function handleAnchorPointMoveEnd(info: any) {}
+
+// 是否显示组合按钮
+const showGroupBtn = computed(() => {
+  return activeIdsSet.value.size <= 1;
+});
+
+// 是否显示解组按钮
+const showCancelGroupBtn = computed(() => {
+  let flag = true;
+  if (activeIdsSet.value.size === 1) {
+    const [id] = activeIdsSet.value;
+    const item = spriteList.value.find((f: ISprite) => f.id === id);
+    if (item?.type === SPRITE_NAME.GROUP) {
+      flag = false;
+    }
+  }
+  return flag;
+});
+
+// 是否禁用删除按钮
+const showDeleteBtn = computed(() => {
+  return activeIdsSet.value.size > 0;
+});
 
 /**
  * 区域选择
@@ -467,24 +536,70 @@ function handleCancelGroup() {
   }
 }
 
+// 删除精灵
+function handleDeleteSprite() {
+  if (activeIdsSet.value.size === 0) return;
+  // 根据 活跃的精灵 id 删除精灵列表中的数据
+  const updateList = deleteSpriteByIds(
+    [...activeIdsSet.value],
+    spriteList.value
+  );
+
+  // updateSprite(
+  //   updateList.map((m) => {
+  //     return {
+  //       id: m.id,
+  //       stateSet: [
+  //         {
+  //           path: "boundingBox.x",
+  //           value: m.boundingBox.x,
+  //         },
+  //         {
+  //           path: "boundingBox.y",
+  //           value: m.boundingBox.y,
+  //         },
+  //         {
+  //           path: "boundingBox.width",
+  //           value: m.boundingBox.width,
+  //         },
+  //         {
+  //           path: "boundingBox.height",
+  //           value: m.boundingBox.height,
+  //         },
+  //       ],
+  //     };
+  //   })
+  // );
+
+  setActiveIds([]);
+}
+
+function handleClear() {
+  spriteList.value = [];
+  setActiveIds([]);
+}
+
 function handleScale(scale: number) {
   stage.attrs.scale = scale;
 }
 
 function redo() {
-  history.redo();
+  // history.redo();
 
-  // if (history.currentValue) {
-  spriteList.value = history.currentValue || [];
-  // }
+  // // if (history.currentValue) {
+  // spriteList.value = history.currentValue || [];
+  // // }
+  listRedo();
 }
 
 function undo() {
-  history.undo();
+  // history.undo();
 
-  // if (history.currentValue) {
-  spriteList.value = history.currentValue || [];
-  // }
+  // // if (history.currentValue) {
+  // spriteList.value = history.currentValue || [];
+  // // }
+
+  listUndo();
 }
 
 /**
@@ -507,6 +622,55 @@ function addPoint() {
   } else {
     mode.value = "addPoint";
   }
+}
+
+function addDiySprite() {
+  const diySprite: ISprite = a();
+  // 让diySprite的id极其子磊=类不重复
+  updateId(diySprite);
+  function updateId(tree: ISprite) {
+    tree.id = GenNonDuplicateID();
+    if (tree.children?.length) {
+      tree.children.forEach((item) => {
+        updateId(item);
+      });
+    }
+  }
+
+  spriteList.value.push(diySprite);
+}
+
+function updateId(tree: ISprite) {
+  tree.id = GenNonDuplicateID();
+  if (tree.children?.length) {
+    tree.children.forEach((item) => {
+      updateId(item);
+    });
+  }
+}
+
+function handlePaste() {
+  if (copy.value.length === 0) return;
+  const newList = copy.value.map((m) => {
+    const _copy = JSON.parse(JSON.stringify(m));
+    updateId(_copy);
+    return _copy;
+  });
+  spriteList.value = spriteList.value.concat(newList);
+
+  setActiveIds(newList.map((m) => m.id));
+}
+let copy = ref<ISprite[]>([]);
+function handleCopy() {
+  let arr: ISprite[] = [];
+  activeIdsSet.value.forEach((id) => {
+    const sprite = findById(spriteList.value, id);
+    if (sprite) {
+      const _copy = JSON.parse(JSON.stringify(sprite));
+      arr.push(_copy);
+    }
+  });
+  copy.value = arr;
 }
 
 defineOptions({
@@ -539,10 +703,13 @@ body {
 
 .header-bar {
   height: 30px;
-  line-height: 30px;
+
   width: 80%;
   background-color: #fff;
   margin: auto;
+
+  display: flex;
+  align-items: center;
 }
 
 .ul {

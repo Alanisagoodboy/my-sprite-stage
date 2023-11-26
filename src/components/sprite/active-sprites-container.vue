@@ -83,8 +83,15 @@ function handleSelectExactly(e: MouseEvent) {
   if (find) {
     emits("select", {
       targetIds: [id],
-      mode: find.type === SPRITE_NAME.GROUP ? "default" : "edit",
     });
+
+    emits("updateSprite", {
+      id,
+      stateSet: {
+        path: "mode",
+        value: find.type === SPRITE_NAME.GROUP ? "default" : "edit",
+      },
+    })
   }
 }
 

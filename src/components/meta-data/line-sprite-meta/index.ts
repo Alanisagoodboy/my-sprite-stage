@@ -2,6 +2,7 @@
 import { ISpriteMeta, SPRITE_NAME } from "../types";
 import LineSprite from "../../sprite/line-sprite/index.vue";
 import { createAnchorsForLine } from "../helps";
+import GenNonDuplicateID from "../../../utils/getUuid";
 
 const { getPoints, pointChange } = createAnchorsForLine();
 export const lineSpriteMeta: ISpriteMeta = {
@@ -9,7 +10,7 @@ export const lineSpriteMeta: ISpriteMeta = {
   // 初始化描述数据
   createInitData() {
     return {
-      id: Math.random() + '',
+      id: GenNonDuplicateID(),
       type: SPRITE_NAME.LINE,
       attrs: {
         stroke: "#84db92",

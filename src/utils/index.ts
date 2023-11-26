@@ -1,3 +1,4 @@
+import { ISprite } from "./../components/meta-data/types";
 import { IBoundingBox, ISprite, IStage } from "../components/meta-data/types";
 import { IBox, IPoint, HANDLER } from "./types";
 
@@ -171,12 +172,6 @@ export function calcResizeBoxInfoWithoutRotate({
   startEv: MouseEvent;
   moveEv: MouseEvent;
 }) {
-  let boxInfo = {
-    ...rect,
-    dx: (moveEv.clientX - startEv.clientX) / stage.scale,
-    dy: (moveEv.clientY - startEv.clientY) / stage.scale,
-  };
-
   const [moveX, moveY] = [
     (moveEv.clientX - startEv.clientX) / stage.scale,
     (moveEv.clientY - startEv.clientY) / stage.scale,
@@ -247,17 +242,20 @@ export function calcResizeBoxInfoWithoutRotate({
     };
 
     // 计算影响的子级盒子信息, 遍历所有的子级并且给坐标进行修正
-    const childFlatList = scaleList(
-      JSON.parse(JSON.stringify(element.children)),
-      scale.x,
-      scale.y,
-      []
-    );
+    let childFlatList = [];
+    if ("children" in element) {
+      childFlatList = scaleList(
+        JSON.parse(JSON.stringify(element.children)),
+        scale.x,
+        scale.y,
+        []
+      );
+    }
 
     // 计算选中盒子影响的父级盒子， 因为缩放导致子级变化时会影响父级的包含范围需要重新计算
     const a = JSON.parse(JSON.stringify(restParentEle));
     const resList = [];
-    a.forEach((current, index) => {
+    a.forEach((current: any, index: number) => {
       const lastItem = index === 0 ? first : a[index - 1];
       const filter = current.children.filter((f) => f.id !== lastItem.id);
 
@@ -440,9 +438,9 @@ export function calcMoveBoxInfoWithoutRotate({
       },
     };
 
-    const a = JSON.parse(JSON.stringify(restParentEle));
+    const a: ISprite[] = JSON.parse(JSON.stringify(restParentEle));
     const resList = [];
-    a.forEach((current, index) => {
+    a.forEach((current: ISprite, index: number) => {
       const lastItem = index === 0 ? first : a[index - 1];
       const filter = current.children.filter((f) => f.id !== lastItem.id);
 
@@ -481,6 +479,129 @@ export function calcMoveBoxInfoWithoutRotate({
 }
 
 /**
+ * 根据指定id删除树状结构指定精灵
+ */
+
+export function deleteSpriteByIds(ids: string[], allList: ISprite[]) {
+  let updateList = [];
+  ids.forEach((id) => {
+    const path = getPathByKey(id, allList);
+    const list = deleteNode(allList, id, path);
+    updateList.push(...list);
+  });
+  return updateList;
+}
+
+function fixParentBoundingBox(path: ISprite[]) {
+  const [element, ...restParentEle] = path.reverse();
+
+  let resList = [];
+
+  JSON.parse(JSON.stringify(restParentEle)).forEach((ele, index) => {
+    if (ele.children && ele.children.length > 0) {
+      const pBoundingBox = getWrapperBoxInfo(
+        [...ele.children].map((m) => m.boundingBox)
+      );
+      ele.boundingBox = pBoundingBox;
+      const fixChildren = [...ele.children].map((m) => {
+        const x = m.boundingBox.x - pBoundingBox.x;
+        const y = m.boundingBox.y - pBoundingBox.y;
+        return {
+          ...m,
+          boundingBox: {
+            ...m.boundingBox,
+            x,
+            y,
+          },
+        };
+      });
+      // 判断一下，如果后面有存在的数据，则替换已经保存的
+      [ele, ...ele.children].forEach((item) => {
+        const findIndex = resList.findIndex((m) => m.id === item.id);
+        // if (findIndex !== -1) {
+        //   resList[findIndex] = item;
+        // } else {
+        resList.push(item);
+        // }
+      });
+    }
+  });
+
+  return resList;
+
+  // a.forEach((current: any, index: number) => {
+  //   const lastItem = index === 0 ? first : a[index - 1];
+  //   const filter = (current?.children ?? []).filter(
+  //     (f) => f.id !== lastItem.id
+  //   );
+
+  //   const pBoundingBox = getWrapperBoxInfo(
+  //     [...filter, lastItem].map((m) => m.boundingBox)
+  //   );
+
+  //   const fixChildren = [...filter, lastItem].map((m) => {
+  //     const x = m.boundingBox.x - pBoundingBox.x;
+  //     const y = m.boundingBox.y - pBoundingBox.y;
+  //     return {
+  //       ...m,
+  //       boundingBox: {
+  //         ...m.boundingBox,
+  //         x,
+  //         y,
+  //       },
+  //     };
+  //   });
+  //   current.boundingBox.x += pBoundingBox.x;
+  //   current.boundingBox.y += pBoundingBox.y;
+  //   current.boundingBox.width = pBoundingBox.width;
+  //   current.boundingBox.height = pBoundingBox.height;
+
+  //   resList.push(current, ...fixChildren);
+  // });
+  // 为空说明点的是父级，那么只移动父级
+  // if (resList.length === 0) resList.push(first);
+  return resList;
+}
+
+function deleteNode(
+  tree: ISprite[],
+  nodeId: string,
+  path: ISprite[],
+  updateList: ISprite[] = []
+) {
+  for (let i = 0; i < tree.length; i++) {
+    const item = tree[i];
+    if (item.id === nodeId) {
+      tree.splice(i, 1);
+    } else {
+      if (item.children && item.children.length > 0) {
+        deleteNode(item.children, nodeId, path, updateList);
+        // 进入到此分支，说明是组合
+        // 如果删除之后，只有一个子级，则将子级的属性设置为当前节点, 并且需要更新父级节点的坐标
+        if (item.children.length === 1) {
+          const x = tree[i].boundingBox.x + item.children[0].boundingBox.x;
+          const y = tree[i].boundingBox.y + item.children[0].boundingBox.y;
+          tree[i] = {
+            ...item.children[0],
+            boundingBox: {
+              ...item.children[0].boundingBox,
+              x,
+              y,
+            },
+            id: tree[i].id,
+          };
+        }
+      }
+    }
+
+    const resList = fixParentBoundingBox(path);
+    updateList.push(...resList);
+  }
+
+  return updateList;
+}
+
+/**
  * 获取选中的精灵列表
  * @param id 点击精灵的id
  * @param activeIdsSet 当前已经选中的精灵列表Set
@@ -498,6 +619,8 @@ export function getSelectList({ id, activeIdsSet, allList }: any) {
     // 如果找到了，将找到的这一个设置为新的选中的精灵
     if (findInAll) {
       targetIds = [findInAll.id];
+    } else {
+      targetIds = [];
     }
   }
 
@@ -1468,6 +1591,7 @@ function getPathByKey(curKey: string, data: Array<any>): Array<any> {
       if (item.id === curKey) {
         // 把获取到的节点路径数组path赋值到result数组
         result = JSON.parse(JSON.stringify(path));
+
         return;
       }
 

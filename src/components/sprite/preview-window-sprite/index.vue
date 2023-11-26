@@ -2,16 +2,16 @@
   <svg
     width="100%"
     height="100%"
-    :viewBox="`0 0 ${stage.width} ${stage.height}`"
+    :viewBox="`0 0 ${stage.attrs.width} ${stage.attrs.height}`"
   >
     <rect
       x="0"
       y="0"
-      :width="stage.width"
-      :height="stage.height"
+      :width="stage.attrs.width"
+      :height="stage.attrs.height"
       stroke="#398cfe"
       stroke-width="1"
-      :fill="stage.backgroundColor"
+      :fill="stage.attrs.backgroundColor"
     ></rect>
     <!-- 精灵树渲染 -->
     <SpriteTree
@@ -23,10 +23,10 @@
 </template>
 
 <script setup lang="ts">
-import { ISprite, IStage } from "../../meta-data/types";
+import { ISprite} from "../../meta-data/types";
 import SpriteTree from "../sprite-tree.vue";
 defineProps<{
-  stage: IStage;
+  stage: ISprite;
   spriteList: ISprite[];
   registerSpriteMetaMap: Record<string, ISprite>;
 }>();

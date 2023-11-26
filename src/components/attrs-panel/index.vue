@@ -32,18 +32,45 @@
                 :model-value="getValueFromModel(item)"
                 @update:modelValue="setValueToModel($event, item)"
               ></el-input>
+              <el-input-number
+                v-if="item.renderComponent === 'input-number'"
+                :model-value="getValueFromModel(item)"
+                @update:modelValue="setValueToModel($event, item)"
+              ></el-input-number>
+
               <el-color-picker
                 v-if="item.renderComponent === 'color-picker'"
+                show-alpha
                 :model-value="getValueFromModel(item)"
                 @update:modelValue="setValueToModel($event, item)"
               ></el-color-picker>
               <ColorPicker
                 v-if="item.renderComponent === 'color-pickers'"
+                :key="form.id"
                 useType="both"
-                :[getColorType(item).modelValue]="getValueFromModel(item)"
-                @update:pureColor="setValueToModel($event, item)"
-                @update:gradientColor="setValueToModel($event, item)"
+                :pureColor="getValueFromModel(item).pureColor"
+                :gradientColor="getValueFromModel(item).gradientColor"
+                @update:pureColor="setValueToModel($event, item, 'pureColor')"
+                @update:gradientColor="
+                  setValueToModel($event, item, 'gradientColor')
+                "
               ></ColorPicker>
+
+              <text-justify-align
+                v-bind="getValueFromModel(item)"
+                @change="setValueToModel($event, item)"
+                v-if="
+                  item.renderComponent === ENUM_RenderComponent.textJustifyAlign
+                "
+              ></text-justify-align>
+
+              <textFontFamily
+                v-bind="getValueFromModel(item)"
+                @change="setValueToModel($event, item)"
+                v-if="
+                  item.renderComponent === ENUM_RenderComponent.textFontFamily
+                "
+              ></textFontFamily>
             </el-form-item>
           </el-form>
         </el-card>
@@ -55,8 +82,10 @@
 <script setup lang="ts">
 import { ColorPicker } from "colorpickers";
 import "colorpickers/style.css";
+import TextJustifyAlign from "@/components/common/text-justify-align.vue";
+import textFontFamily from "@/components/common/text-font-family.vue";
 import { computed } from "vue";
-import { ISprite, SPRITE_NAME } from "../meta-data/types";
+import { ISprite, SPRITE_NAME, ENUM_RenderComponent } from "../meta-data/types";
 import { default_sprite_data } from "../meta-data/index";
 
 // @ts-ignore
@@ -116,16 +145,8 @@ const attrsConfig = computed(() => {
 const classList = computed(() => {
   try {
     if (attrsConfig.value) {
-      const { configSchemaMap, classifyList } = attrsConfig.value;
-      return classifyList.map((m: IClassifyItem) => {
-        return {
-          ...m,
-          configList: m.configList.map((n) => {
-            const v: IConfigSchema = configSchemaMap[n];
-            return v;
-          }),
-        };
-      });
+      const { classifyList } = attrsConfig.value;
+      return classifyList;
     } else {
       return [];
     }
@@ -155,47 +176,36 @@ const form = computed(() => {
 
 // 获取传入数据
 function getValueFromModel(item: IConfigSchema) {
+  // 如果是组合属性，案例说是获取不到值，，需要借助 inValFormat 函数
   const val = _.get(form.value, item.path);
   const finalVal = item.inValFormat
     ? item.inValFormat({
         schema: item,
-        value: val,
+        form: form.value,
       })
     : val;
 
   return finalVal;
 }
 
-function getColorType(item: any) {
-  const isPure = typeof _.get(form.value, item.path) === "string";
-  const colorType = isPure ? "pureColor" : "gradientColor";
-  return {
-    modelValue: colorType,
-    update: `update:${colorType}`,
-  };
-}
-
-function gradientColorChange(val) {
-  console.log(val, "val");
-}
-
 // 设置传出数据
-function setValueToModel(val: any, item: IConfigSchema) {
-  console.log(item.path, val, "kkk");
-
+function setValueToModel(val: any, item: IConfigSchema, otherParams?: any) {
   // 如果是舞台，则更新舞台数据
   if (activeSpriteList.value.length === 0) {
-    emits("updateSprite", {
-      type: SPRITE_NAME.STAGE,
-      stateSet: {
-        path: item.path,
-        value: item.outValFormat
-          ? item.outValFormat({
-              schema: item,
-              value: val,
-            })
-          : val,
-      },
+    const changeState = item.outValFormat!({
+      schema: item,
+      value: val,
+      otherParams,
+    });
+    Object.keys(changeState).forEach((path) => {
+      const value = changeState[path];
+      emits("updateSprite", {
+        type: SPRITE_NAME.STAGE,
+        stateSet: {
+          path,
+          value,
+        },
+      });
     });
 
     return;
@@ -213,18 +223,32 @@ function setValueToModel(val: any, item: IConfigSchema) {
     ...nonGroupList.map((m) => m.id),
     ...groupList.flatMap((n) => n.children!.map((o: ISprite) => o.id)),
   ];
-  emits("updateSprite", {
-    id: id,
-    stateSet: {
-      path: item.path,
-      value: item.outValFormat
-        ? item.outValFormat({
-            schema: item,
-            value: val,
-          })
-        : val,
-    },
-  });
+
+  if (item.outValFormat) {
+    const changeState = item.outValFormat({
+      schema: item,
+      value: val,
+      otherParams,
+    });
+    Object.keys(changeState).forEach((path) => {
+      const value = changeState[path];
+      emits("updateSprite", {
+        id: id,
+        stateSet: {
+          path,
+          value,
+        },
+      });
+    });
+  } else {
+    emits("updateSprite", {
+      id: id,
+      stateSet: {
+        path: item.path,
+        value: val,
+      },
+    });
+  }
 }
 </script>
 <style scoped>

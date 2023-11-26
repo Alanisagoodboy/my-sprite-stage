@@ -71,6 +71,7 @@ function handleDown(e: MouseEvent) {
 
   // 如果点击不在舞台上，return
   if (spriteType !== "stage") return;
+  emits("select-area-move", []);
   console.log(spriteType, "spriteType");
 
   stageInfo = svgRef.value.getBoundingClientRect();

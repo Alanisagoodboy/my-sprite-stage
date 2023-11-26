@@ -4,6 +4,7 @@ import { classifyList, configSchemaMap } from "./attrs-meta/index";
 /* 组合精灵 元数据 */
 
 import { ISpriteMeta, SPRITE_NAME } from "../types";
+import GenNonDuplicateID from "../../../utils/getUuid";
 export const groupSpriteMeta: ISpriteMeta = {
   title: "组合",
   type: SPRITE_NAME.GROUP,
@@ -12,7 +13,7 @@ export const groupSpriteMeta: ISpriteMeta = {
     console.log(boundingBox, "boundingBox");
 
     return {
-      id: Math.random() + "",
+      id: GenNonDuplicateID(),
       type: SPRITE_NAME.GROUP,
       attrs: {},
       boundingBox: boundingBox,

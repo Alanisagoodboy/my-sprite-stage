@@ -7,6 +7,7 @@
       :height="sprite.boundingBox.height"
     >
       <EditDiv
+        :style="contentStyle"
         ref="editDivRef"
         :content="sprite.attrs.content"
         size-type="fit-content"
@@ -21,7 +22,7 @@
 import EditDiv from "../../common/edit-div.vue";
 import { ISprite, IStage } from "../../meta-data/types";
 
-import { ref, onMounted, watch } from "vue";
+import { ref, onMounted, watch, computed } from "vue";
 
 defineOptions({
   name: "text-sprite",
@@ -29,7 +30,7 @@ defineOptions({
 
 const props = defineProps<{
   sprite: ISprite;
-  stage: IStage
+  stage: ISprite;
 }>();
 const emits = defineEmits(["updateSprite"]);
 const editDivRef = ref<InstanceType<typeof EditDiv> | null>(null);
@@ -42,6 +43,18 @@ watch(
     }
   }
 );
+
+// 文本内容的属性绑定
+const contentStyle = computed(() => {
+  const { contentFontSize, contentColor, justifyContent, alignItems } =
+    props.sprite.attrs;
+  return {
+    fontSize: contentFontSize + "px",
+    color: contentColor,
+    "justify-content": justifyContent || "center",
+    "align-items": alignItems || "center",
+  };
+});
 
 function handleTextChange(info: any) {
   emits("updateSprite", {
@@ -60,17 +73,17 @@ function handleTextChange(info: any) {
 }
 
 function handleSizeChange(info: any) {
-  console.log(info, "dasdasd "); 
+  console.log(info, "dasdasd ");
   emits("updateSprite", {
     id: props.sprite.id,
     stateSet: [
       {
         path: "boundingBox.width",
-        value: info.width / props.stage.scale,
+        value: info.width / props.stage.attrs.scale,
       },
       {
         path: "boundingBox.height",
-        value: info.height / props.stage.scale,
+        value: info.height / props.stage.attrs.scale,
       },
       {
         path: "mode",

@@ -2,17 +2,25 @@
 
 import { ISpriteMeta, SPRITE_NAME } from "../types";
 import TextSprite from "../../sprite/text-sprite/index.vue";
+import GenNonDuplicateID from "../../../utils/getUuid";
+
+import { classifyList, configSchemaMap } from "./attrs-meta/index";
 export const textSpriteMeta: ISpriteMeta = {
   title: "文本",
   type: SPRITE_NAME.TEXT,
   createInitData() {
     return {
-      id: Math.random() + '',
+      id: GenNonDuplicateID(),
       type: SPRITE_NAME.TEXT,
       attrs: {
         // fill: "#fdc5bf"
         fill: "#eee",
-        content: '123',
+        content: '文本',
+
+        contentFontFamily: "Microsoft YaHei", // 字体
+        contentFontSize: 16, // 字体大小
+        justifyContent: "center", // 水平对齐方式
+        alignItems: "center", // 垂直对齐方式
       },
       boundingBox: {
         x: 100,
@@ -26,4 +34,8 @@ export const textSpriteMeta: ISpriteMeta = {
   component: TextSprite,
   resizePoints: "empty", // 'all' 代表有所有的形变点
   isShowRotateHandle: false, // 是否显示旋转操作杆
+  attrsConfig: {
+    configSchemaMap, // schema 描述
+    classifyList, // 属性分类列表
+  }, // 属性面板描述
 };

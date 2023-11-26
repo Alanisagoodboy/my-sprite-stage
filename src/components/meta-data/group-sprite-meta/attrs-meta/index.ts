@@ -1,13 +1,25 @@
 import { getNumberValid } from "./helper";
 import { IClassifyItem, IConfigSchema, PROP_ENUM } from "./types";
 
+import {
+  createCommonValFormat,
+  createGroupValFormatForColorPickers,
+} from "../../helps";
+// @ts-ignore
+import _ from "lodash";
+
+
+const commonValFormat = createCommonValFormat();
+const groupValFormatForColorPickers = createGroupValFormatForColorPickers();
+
+
 type IParams = {
   schema: IConfigSchema;
   value: any;
 };
 
 // 配置的属性对应的schema
-export const configSchemaMap: Record<PROP_ENUM, IConfigSchema> = {
+export const configSchemaMap: Record<string, IConfigSchema> = {
   width: {
     prop: "width",
     label: "W",
@@ -15,10 +27,8 @@ export const configSchemaMap: Record<PROP_ENUM, IConfigSchema> = {
     path: "boundingBox.width",
     renderComponent: "input",
     defaultValue: 0,
-    inValFormat: ({ schema, value }: IParams) =>
-      getNumberValid(value, schema.defaultValue),
-    outValFormat: ({ schema, value }: IParams) =>
-      getNumberValid(value, schema.defaultValue),
+    inValFormat: commonValFormat.in,
+    outValFormat: commonValFormat.out,
   },
   height: {
     prop: "height",
@@ -27,10 +37,8 @@ export const configSchemaMap: Record<PROP_ENUM, IConfigSchema> = {
     path: "boundingBox.height",
     renderComponent: "input",
     defaultValue: 0,
-    inValFormat: ({ schema, value }: IParams) =>
-      getNumberValid(value, schema.defaultValue),
-    outValFormat: ({ schema, value }: IParams) =>
-      getNumberValid(value, schema.defaultValue),
+    inValFormat: commonValFormat.in,
+    outValFormat: commonValFormat.out,
   },
   x: {
     prop: "x",
@@ -39,10 +47,8 @@ export const configSchemaMap: Record<PROP_ENUM, IConfigSchema> = {
     path: "boundingBox.x",
     renderComponent: "input",
     defaultValue: 0,
-    inValFormat: ({ schema, value }: IParams) =>
-      getNumberValid(value, schema.defaultValue),
-    outValFormat: ({ schema, value }: IParams) =>
-      getNumberValid(value, schema.defaultValue),
+    inValFormat: commonValFormat.in,
+    outValFormat: commonValFormat.out,
   },
   y: {
     prop: "y",
@@ -51,24 +57,28 @@ export const configSchemaMap: Record<PROP_ENUM, IConfigSchema> = {
     path: "boundingBox.y",
     renderComponent: "input",
     defaultValue: 0,
-    inValFormat: ({ schema, value }: IParams) =>
-      getNumberValid(value, schema?.defaultValue),
-    outValFormat: ({ schema, value }: IParams) =>
-      getNumberValid(value, schema?.defaultValue),
+    inValFormat: commonValFormat.in,
+    outValFormat: commonValFormat.out,
   },
   fill: {
     prop: "fill",
     label: "填充色",
     valueType: "color",
     path: "attrs.fill",
-    renderComponent: "color-picker",
+    renderComponent: "color-pickers",
     defaultValue: "#ccc",
-    inValFormat: ({ value }: IParams) => {
-      return value;
-    },
-    outValFormat: ({ value }: IParams) => {
-      return value;
-    },
+    inValFormat: commonValFormat.in,
+    outValFormat: commonValFormat.out,
+  },
+  gradientFill: {
+    prop: "gradientFill",
+    label: "填充渐变色",
+    valueType: "color",
+    path: "attrs.gradientFill",
+    renderComponent: "color-pickers",
+    defaultValue: "#ccc",
+    inValFormat: commonValFormat.in,
+    outValFormat: commonValFormat.out,
   },
   stroke: {
     prop: "stroke",
@@ -77,6 +87,8 @@ export const configSchemaMap: Record<PROP_ENUM, IConfigSchema> = {
     path: "attrs.stroke",
     renderComponent: "color-picker",
     defaultValue: "#398cfe",
+    // inValFormat: commonValFormat.in,
+    // outValFormat: commonValFormat.out,
   },
   strokeWidth: {
     prop: "strokeWidth",
@@ -85,70 +97,36 @@ export const configSchemaMap: Record<PROP_ENUM, IConfigSchema> = {
     path: "attrs.strokeWidth",
     renderComponent: "input",
     defaultValue: 3,
-    inValFormat: ({ schema, value }: IParams) =>
-      getNumberValid(value, schema.defaultValue),
-    outValFormat: ({ schema, value }: IParams) =>
-      getNumberValid(value, schema.defaultValue),
+    inValFormat: commonValFormat.in,
+    outValFormat: commonValFormat.out,
   },
-  content: {
-    prop: "content",
-    label: "文本",
-    valueType: "string",
-    path: "attrs.content",
-    renderComponent: "text-area",
-    defaultValue: "",
-    inValFormat: ({ value }: IParams) => {
-      return value;
+};
+
+const groupMap: Record<string, IConfigSchema> = {
+  "bg-pure-Gradient-color": {
+    renderComponent: "color-pickers",
+    label: "背景",
+    prop: "bg-pure-Gradient-color",
+    groupProps: {
+      fill: configSchemaMap.fill,
+      gradientFill: configSchemaMap.gradientFill,
     },
-    outValFormat: ({ value }: IParams) => {
-      return value;
-    },
+    inValFormat: groupValFormatForColorPickers.in,
+    outValFormat: groupValFormatForColorPickers.out,
   },
-  contentFontSize: {
-    prop: "contentFontSize",
-    label: "字号",
-    valueType: "string",
-    path: "attrs.contentFontSize",
-    renderComponent: "select",
-    defaultValue: "",
-    inValFormat: ({ value }: IParams) => {
-      return value;
-    },
-    outValFormat: ({ value }: IParams) => {
-      return value;
-    },
-  },
-  contentColor: {
-    prop: "contentColor",
-    label: "文本颜色",
-    valueType: "color",
-    path: "attrs.contentColor",
-    renderComponent: "color-picker",
-    defaultValue: "#000000",
-    inValFormat: ({ value }: IParams) => {
-      return value;
-    },
-    outValFormat: ({ value }: IParams) => {
-      return value;
-    },
-  },
+
 };
 
 // 分类列表
 export const classifyList: IClassifyItem[] = [
   {
-    name: "a", // 分类的字段
-    title: "位置尺寸", // 分类的名称
-    configList: [PROP_ENUM.x, PROP_ENUM.y, PROP_ENUM.width, PROP_ENUM.height],
-  },
-  {
     name: "b", // 分类的字段
     title: "背景色", // 分类的名称
-    configList: [PROP_ENUM.fill],
+    configList: [groupMap["bg-pure-Gradient-color"]],
   },
   {
     name: "c", // 分类的字段
     title: "边框", // 分类的名称
-    configList: [PROP_ENUM.stroke, PROP_ENUM.strokeWidth],
+    configList: [configSchemaMap.stroke, configSchemaMap.strokeWidth],
   },
 ];

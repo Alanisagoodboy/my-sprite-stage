@@ -1,107 +1,110 @@
 <template>
-  <polygon
-    stroke="#999"
-    :stroke-width="strokeWidth"
-    fill="none"
-    v-bind="bind"
-    @mousedown="addPoint"
-  />
+  <g>
+    <polygon v-bind="bind" />
+    <!-- 定义单组线性渐变 -->
+    <DefsSvgLinearGradient :computed-gradient="computedGradient" />
+  </g>
 </template>
 
 <script setup lang="ts">
 import { computed, inject } from "vue";
 import { ICoordinate, type ISprite } from "../../../components/meta-data/types";
+import DefsSvgLinearGradient from "@/components/common/defs-svg-linear-gradient.vue";
+import useComputedGradient from "@/hooks/useComputedGradient";
 import {
   calculateFixPointOnLine,
   distance,
   findNearestSegment,
 } from "../../../utils";
 // import { calculateIntersectionPoin } from "../../../utils";
-const p = defineProps<{
+const props = defineProps<{
   sprite: ISprite;
 }>();
 
-const strokeWidth = 10;
-
 const emits = defineEmits(["updateSprite"]);
-
+const { computedGradient } = useComputedGradient(props);
 const bind = computed(() => {
-  const { boundingBox } = p.sprite;
+  const { boundingBox } = props.sprite;
   const { width, height } = boundingBox;
-  const { points } = p.sprite.attrs;
+  const { points, fill, gradientFill, stroke, strokeWidth, ...restAttrs } =
+    props.sprite.attrs;
   const pointsStr = points
     .map((m: ICoordinate) => `${m.x * width},${m.y * height}`)
     .join(" ");
   return {
     points: pointsStr,
+    fill: gradientFill
+      ? `url(#${computedGradient.value?.linearGradient.id})`
+      : fill,
+    stroke,
+    "stroke-width": strokeWidth,
+    ...restAttrs,
   };
 });
 
+// const mode = inject("mode");
 
+// function addPoint(e: MouseEvent) {
+//   console.log(e, "event");
 
-const mode = inject("mode");
+//   console.log(mode.value, "mode");
 
-function addPoint(e: MouseEvent) {
-  console.log(e, "event");
+//   if (mode.value !== "addPoint") return;
+//   const { boundingBox } = p.sprite;
+//   const { x, y, width, height } = boundingBox;
+//   const { points } = p.sprite.attrs;
 
-  console.log(mode.value, "mode");
+//   const curPoint = getPointInStage(e);
+//   const pointsInStage = points.map((m: ICoordinate) => {
+//     return {
+//       x: m.x * width + x,
+//       y: m.y * height + y,
+//     };
+//   });
+//   const nearIndexInfo = findNearestSegment(curPoint, pointsInStage);
+//   // console.log(index, "a");
+//   console.log(nearIndexInfo, "near");
 
-  if (mode.value !== "addPoint") return;
-  const { boundingBox } = p.sprite;
-  const { x, y, width, height } = boundingBox;
-  const { points } = p.sprite.attrs;
+//   if (nearIndexInfo) {
+//     const { startIndex, endIndex } = nearIndexInfo;
 
-  const curPoint = getPointInStage(e);
-  const pointsInStage = points.map((m: ICoordinate) => {
-    return {
-      x: m.x * width + x,
-      y: m.y * height + y,
-    };
-  });
-  const nearIndexInfo = findNearestSegment(curPoint, pointsInStage);
-  // console.log(index, "a");
-  console.log(nearIndexInfo, "near");
+//     const fixPoint = calculateFixPointOnLine(
+//       curPoint,
+//       pointsInStage[startIndex],
+//       pointsInStage[endIndex]
+//     );
 
-  if (nearIndexInfo) {
-    const { startIndex, endIndex } = nearIndexInfo;
+//     const curRatioPoint = {
+//       x: (fixPoint.x - x) / width,
+//       y: (fixPoint.y - y) / height,
+//     };
+//     // console.log(pointList, "hahah");
+//     const newPoints = JSON.parse(JSON.stringify(points));
+//     newPoints.splice(endIndex, 0, curRatioPoint);
+//     emits(
+//       "updateSprite",
+//       {
+//         id: p.sprite.id,
+//         stateSet: {
+//           path: "attrs.points",
+//           value: newPoints,
+//         },
+//       },
+//       {
+//         handleType: "mode",
+//         value: "",
+//       }
+//     );
+//   }
+// }
 
-    const fixPoint = calculateFixPointOnLine(
-      curPoint,
-      pointsInStage[startIndex],
-      pointsInStage[endIndex]
-    );
+// const svgRef: any = inject("svgRef");
+// function getPointInStage(e: any) {
+//   const stageInfo = svgRef.value.getBoundingClientRect();
 
-    const curRatioPoint = {
-      x: (fixPoint.x - x) / width,
-      y: (fixPoint.y - y) / height,
-    };
-    // console.log(pointList, "hahah");
-    const newPoints = JSON.parse(JSON.stringify(points));
-    newPoints.splice(endIndex, 0, curRatioPoint);
-    emits(
-      "updateSprite",
-      {
-        id: p.sprite.id,
-        stateSet: {
-          path: "attrs.points",
-          value: newPoints,
-        },
-      },
-      {
-        handleType: "mode",
-        value: "",
-      }
-    );
-  }
-}
-
-const svgRef: any = inject("svgRef");
-function getPointInStage(e: any) {
-  const stageInfo = svgRef.value.getBoundingClientRect();
-
-  return {
-    x: e.clientX - stageInfo.x,
-    y: e.clientY - stageInfo.y,
-  };
-}
+//   return {
+//     x: e.clientX - stageInfo.x,
+//     y: e.clientY - stageInfo.y,
+//   };
+// }
 </script>
